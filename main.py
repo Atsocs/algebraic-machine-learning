@@ -1,18 +1,18 @@
-import random
 from itertools import accumulate
 from enum import Enum
+# from pprint import pformat
+
 import networkx as nx
 from matplotlib import pyplot
+
+target, zero, zero_star = 'v', '0', '0*'
+closure = True
 
 
 def draw_colored_graph(g, show=False):
     nx.draw(g, node_color=list((nx.get_node_attributes(g, "color")).values()))
     if show:
         pyplot.show()
-
-
-target, zero, zero_star = 'v', '0', '0*'
-closure = True
 
 
 class Color(Enum):
@@ -215,9 +215,16 @@ def C(S):
 
 
 def random_pop(set_s):
-    x = random.choice(tuple(set_s))
-    set_s = set_s - {x}
+    x = random_choice(set_s)
+    set_s.remove(x)
     return x, set_s
+
+
+def random_choice(set_s):
+    # todo: use random module and random.seed(0) to guarantee the same result always
+    seq = list(set_s)
+    seq = sorted(seq, key=hash)
+    return seq[0]
 
 
 def find_strongly_discriminant_constant(a, b, master_atoms_list, dual_atoms_list):
@@ -226,13 +233,13 @@ def find_strongly_discriminant_constant(a, b, master_atoms_list, dual_atoms_list
     while u:
         zeta, u = random_pop(u)
         if omega_a - GU(dual, zeta):
-            dual_of_c = random.choice(tuple(omega_a - GU(dual, zeta)))
+            dual_of_c = random_choice(omega_a - GU(dual, zeta))
             return un_dual_of(dual_of_c)
     return None
 
 
 def enforce_negative_trace_constraints(master_atoms_list, dual_atoms_list):
-    # todo: make this work!
+    global master, dual
     a = target
     for t_def in neg_def:
         b = term(t_def)
@@ -246,11 +253,13 @@ def enforce_negative_trace_constraints(master_atoms_list, dual_atoms_list):
                     s2 = C("dual")
                     GLc_dual_of_b = s1 & s2
                     choose_h_from_set = GLc_dual_of_b - GL(dual, dual_of(a))
-                    h = random.choice(tuple(choose_h_from_set))
+                    h = random_choice(choose_h_from_set)
 
                     zeta = "zeta_" + str(len(dual_atoms_list) + 1)
                     dual_atoms_list.append(zeta)
                     dual.add_edge(zeta, h)
+                    if closure:
+                        dual = nx.algorithms.transitive_closure(dual)
                     # ---- COLORING ------
                     nx.set_node_attributes(dual, {zeta: 'sienna'}, "color")
                     # --------------------
@@ -259,11 +268,58 @@ def enforce_negative_trace_constraints(master_atoms_list, dual_atoms_list):
             phi = "phi_" + str(len(master_atoms_list))
             master_atoms_list.append(phi)
             master.add_edge(phi, c)
-            dual.add_edge(dual_of(target), dual_of(phi))
+            dual.add_edge(dual_of(c), dual_of(phi))
+            if closure:
+                master = nx.algorithms.transitive_closure(master)
+                dual = nx.algorithms.transitive_closure(dual)
             # ---- COLORING ------
             nx.set_node_attributes(master, {phi: 'orchid'}, "color")
             nx.set_node_attributes(dual, {dual_of(phi): 'orchid'}, "color")
             # --------------------
+
+    return master_atoms_list, dual_atoms_list
+
+
+def enforce_positive_trace_constraints(master_atoms_list, dual_atoms_list):
+    global master, dual
+    d = target
+    for t_def in pos_def:
+        e = term(t_def)
+        tr_e = Tr("master", e, master_atoms_list, dual_atoms_list)
+        tr_d = Tr("master", d, master_atoms_list, dual_atoms_list)
+        is_subset = tr_e.issubset(tr_d)
+        set_diff = tr_e - tr_d
+        while not is_subset:
+            zeta = random_choice(set_diff)
+            c_is_in = GL(master, e) & C("master")
+            Gamma = set()
+            for c in c_is_in:
+                gl = GL(dual, dual_of(c))
+                if zeta not in gl:
+                    Gamma.add(c)
+            if not Gamma:
+                dual.add_edge(zeta, dual_of(d))
+                if closure:
+                    dual = nx.algorithms.transitive_closure(dual)
+            else:
+                c = random_choice(Gamma)
+
+                phi = "phi_" + str(len(master_atoms_list))
+                master_atoms_list.append(phi)
+                master.add_edge(phi, c)
+                dual.add_edge(dual_of(c), dual_of(phi))
+                if closure:
+                    master = nx.algorithms.transitive_closure(master)
+                    dual = nx.algorithms.transitive_closure(dual)
+                # ---- COLORING ------
+                nx.set_node_attributes(master, {phi: 'purple'}, "color")
+                nx.set_node_attributes(dual, {dual_of(phi): 'purple'}, "color")
+                # --------------------
+
+            tr_e = Tr("master", e, master_atoms_list, dual_atoms_list)
+            tr_d = Tr("master", d, master_atoms_list, dual_atoms_list)
+            is_subset = tr_e.issubset(tr_d)
+            set_diff = tr_e - tr_d
 
     return master_atoms_list, dual_atoms_list
 
@@ -288,6 +344,7 @@ def is_consistent(dual_graph):
 
 
 if __name__ == '__main__':
+    # random.seed(0)  # todo: should I delete this line?
     # ------- DATA ---------
     consts = [
         ((None, None), (Color.BLACK, None)),
@@ -309,8 +366,6 @@ if __name__ == '__main__':
     pos_def, neg_def = [T1_pos, T2_pos], [T1_neg, T2_neg, T3_neg]
     # ----------------------
 
-    random.seed(0)  # todo: delete this line?
-
     master, master_atoms = create_master()
     # draw_colored_graph(master, show=True)
 
@@ -321,7 +376,14 @@ if __name__ == '__main__':
     # draw_colored_graph(dual, show=True)
 
     master_atoms, dual_atoms = enforce_negative_trace_constraints(master_atoms, dual_atoms)
+    # draw_colored_graph(master, show=True)
+    # draw_colored_graph(dual, show=True)
+
+    master_atoms, dual_atoms = enforce_positive_trace_constraints(master_atoms, dual_atoms)
     draw_colored_graph(master, show=True)
     draw_colored_graph(dual, show=True)
 
-    # todo: enforce_positive_trace_constraints
+    # todo: make the following number of atoms always the same
+    #  (I could not get the random module to do that for me)
+    print("#master_atoms =", len(master_atoms))
+    # print(pformat(list(master.edges)))
