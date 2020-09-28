@@ -15,8 +15,12 @@ target, zero, zero_star = 'v', '0', '0*'
 closure = True
 
 
-def draw_colored_graph(g, show=False):
-    nx.draw(g, node_color=list((nx.get_node_attributes(g, "color")).values()))
+def draw_colored_graph(g, show=False, spring=False):
+    if spring:
+        nx.draw(g, pos=nx.spring_layout(g), node_color=list((nx.get_node_attributes(g, "color")).values()))
+    else:
+        nx.draw(g, pos=nx.random_layout(g), node_color=list((nx.get_node_attributes(g, "color")).values()))
+
     if show:
         pyplot.show()
 
@@ -159,8 +163,8 @@ def create_dual():
 
 def include_zeta_atoms():
     global dual, dual_atoms
-    n = len(dual_atoms)
-    new_atoms = ["zeta_" + str(i + n) for i in range(len(neg_def))]
+    m = len(dual_atoms)
+    new_atoms = ["zeta_" + str(i + m) for i in range(len(neg_def))]
     duals_of_t_neg = [dual_of(term(t_def)) for t_def in neg_def]
     dual.add_edges_from((zip(new_atoms, duals_of_t_neg)))
 
@@ -185,7 +189,7 @@ def Tr(S, x):
     elif S == "dual":
         g, S2 = dual, "master"
     else:
-        raise Exception('Tr is callable only with "master" or "dual" as argument.')
+        raise Exception('Tr is callable only with "master" or "dual" as S argument.')
 
     phi_Set = GLa(S, x)
     Setlist = []
@@ -211,7 +215,7 @@ def GLa(S, x):
     elif S == "dual":
         g = dual
     else:
-        raise Exception('GLa is callable only with "master" or "dual" as argument.')
+        raise Exception('GLa is callable only with "master" or "dual" as S argument.')
     return GL(g, x) & A(S)
 
 
@@ -220,7 +224,7 @@ def A(S):
         return OrderedSet(master_atoms)
     if S == "dual":
         return OrderedSet(dual_atoms)
-    raise Exception('A is callable only with "master" or "dual" as argument.')
+    raise Exception('A is callable only with "master" or "dual" as S argument.')
 
 
 def C(S):
@@ -233,7 +237,7 @@ def C(S):
         ret.append(dual_of(target))
         ret += [dual_of(term(t_def)) for t_def in pos_def + neg_def]
         return OrderedSet(ret)
-    raise Exception('C is callable only with "master" or "dual" as argument.')
+    raise Exception('C is callable only with "master" or "dual" as S argument.')
 
 
 def random_pop(Set_s):
@@ -256,6 +260,7 @@ def find_strongly_discriminant_constant(a, b):
 
 def enforce_negative_trace_constraints():
     global master, dual, master_atoms, dual_atoms
+    ret = 0
     a = target
     for t_def in neg_def:
         b = term(t_def)
@@ -270,8 +275,8 @@ def enforce_negative_trace_constraints():
                     GLc_dual_of_b = s1 & s2
                     choose_h_from_Set = GLc_dual_of_b - GL(dual, dual_of(a))
                     h = random.choice(tuple(choose_h_from_Set))
-
                     zeta = "zeta_" + str(len(dual_atoms) + 1)
+                    ret += 1
                     dual_atoms.append(zeta)
                     dual.add_edge(zeta, h)
                     if closure:
@@ -282,6 +287,7 @@ def enforce_negative_trace_constraints():
                 else:
                     break
             phi = "phi_" + str(len(master_atoms))
+            ret += 1
             master_atoms.append(phi)
             master.add_edge(phi, c)
             dual.add_edge(dual_of(c), dual_of(phi))
@@ -292,10 +298,12 @@ def enforce_negative_trace_constraints():
             nx.set_node_attributes(master, {phi: 'orchid'}, "color")
             nx.set_node_attributes(dual, {dual_of(phi): 'orchid'}, "color")
             # --------------------
+    return ret
 
 
 def enforce_positive_trace_constraints():
     global master, dual, master_atoms, dual_atoms
+    ret = 0
     d = target
     for t_def in pos_def:
         e = term(t_def)
@@ -319,6 +327,7 @@ def enforce_positive_trace_constraints():
                 c = random.choice(tuple(Gamma))
 
                 phi = "phi_" + str(len(master_atoms))
+                ret += 1
                 master_atoms.append(phi)
                 master.add_edge(phi, c)
                 dual.add_edge(dual_of(c), dual_of(phi))
@@ -326,14 +335,15 @@ def enforce_positive_trace_constraints():
                     master = nx.algorithms.transitive_closure(master)
                     dual = nx.algorithms.transitive_closure(dual)
                 # ---- COLORING ------
-                nx.set_node_attributes(master, {phi: 'purple'}, "color")
-                nx.set_node_attributes(dual, {dual_of(phi): 'purple'}, "color")
+                nx.set_node_attributes(master, {phi: 'orchid'}, "color")
+                nx.set_node_attributes(dual, {dual_of(phi): 'orchid'}, "color")
                 # --------------------
 
             tr_e = Tr("master", e)
             tr_d = Tr("master", d)
             is_subSet = tr_e.issubset(tr_d)
             Set_diff = tr_e - tr_d
+    return ret
 
 
 def is_consistent():
@@ -354,6 +364,25 @@ def is_consistent():
         if not consistent:
             break
     return consistent
+
+
+def less(S, a, b):
+    global master, dual, master_atoms, dual_atoms
+    if S == "master":
+        graph, atoms_list = master, master_atoms
+    elif S == "dual":
+        graph, atoms_list = dual, dual_atoms
+    else:
+        raise Exception('less is callable only with "master" or "dual" as S argument.')
+    
+    # a < b iff (for all phi in atoms_list, (phi not -> a) or (phi -> b))
+    for phi in atoms_list:
+        neighbors = graph[phi]
+        if not (
+                (a not in neighbors) or (b in neighbors)
+        ):
+            return False
+    return True
 
 
 if __name__ == '__main__':
@@ -385,11 +414,34 @@ if __name__ == '__main__':
     # todo: fix and print(is_consistent(dual, pos_class, neg_class))
     #  merge pairs of dual nodes which are neighbor of each other. Two elements in M can share the same dual
 
-    enforce_negative_trace_constraints()
-    enforce_positive_trace_constraints()
-    draw_colored_graph(master, show=True)
-    draw_colored_graph(dual, show=True)
+    while True:
+        n = 0
+        n += enforce_negative_trace_constraints()
+        n += enforce_positive_trace_constraints()
+        if n > 0:
+            print("enforcement creates", n, "atoms")
+        else:
+            break
+
+    drawing = False
+    if drawing:
+        fig = pyplot.figure(figsize=(10, 5))
+        ax1 = fig.add_subplot(1, 2, 1)
+        ax2 = fig.add_subplot(1, 2, 2)
+        ax1.title.set_text('Master')
+        ax2.title.set_text('Dual')
+        pyplot.subplot(ax1)
+        draw_colored_graph(master)
+        pyplot.subplot(ax2)
+        draw_colored_graph(dual)
+        pyplot.show()
 
     print("#master_atoms =", len(master_atoms))
     print("#dual_atoms =", len(dual_atoms))
-    print(pformat(list(master.edges)))
+    print("#master_edges =", len(master.edges))
+    print("#dual_edges =", len(dual.edges))
+    print("(target < T_i_neg) =", [less("master", target, term(x)) for x in neg_def])  # Should be a list of False's
+
+    print_edges = False
+    if print_edges:
+        print(pformat(list(master.edges)))
