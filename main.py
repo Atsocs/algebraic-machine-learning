@@ -1,38 +1,35 @@
+import random
 from itertools import accumulate
 from enum import Enum
 from pprint import pformat
 import networkx as nx
-import matplotlib
+from matplotlib import pyplot
+
+
+def draw_colored_graph(g, show=False):
+    nx.draw(g, node_color=list((nx.get_node_attributes(g, "color")).values()))
+    if show:
+        pyplot.show()
+
+
+target, zero, zero_star = 'v', '0', '0*'
+closure = True
 
 
 class Color(Enum):
     BLACK = 0
     WHITE = 1
-    BOTH = 2  # todo: decide if I really need a BOTH Color
+    BOTH = 2
 
     def __add__(self, other):
         if self == other:
             return self
-        if self == BOTH or other == BOTH:
-            return BOTH
-        if self == WHITE and other == BLACK:
-            return BOTH
-        if self == BLACK and other == WHITE:
-            return BOTH
-
-
-BLACK, WHITE, BOTH = Color.BLACK, Color.WHITE, Color.BOTH
-
-constants = [
-    ((None, None), (BLACK, None)),
-    ((BLACK, None), (None, None)),
-    ((None, BLACK), (None, None)),
-    ((None, None), (None, BLACK)),
-    ((None, None), (WHITE, None)),
-    ((WHITE, None), (None, None)),
-    ((None, WHITE), (None, None)),
-    ((None, None), (None, WHITE)),
-]
+        if self == Color.BOTH or other == Color.BOTH:
+            return Color.BOTH
+        if self == Color.WHITE and other == Color.BLACK:
+            return Color.BOTH
+        if self == Color.BLACK and other == Color.WHITE:
+            return Color.BOTH
 
 
 def merge(a, b):
@@ -59,123 +56,259 @@ def merge(a, b):
     return tuple(result)
 
 
-def merge_all(element_set):
-    return tuple(accumulate(element_set, merge))[-1]
+def term(term_def, return_only_name=True):
+    name, definition = term_def
+    if return_only_name:
+        return name
+    else:
+        return name, tuple(accumulate(definition, merge))[-1]
 
 
-def less(graph, atoms_list, a, b):
-    # a < b iff (for all phi in atoms_list, (phi not -> a) or (phi -> b))
-    for phi in atoms_list:
-        neighbors = graph[phi]
-        if not (
-                (a not in neighbors) or (b in neighbors)
-        ):
-            return False
-    return True
+def dual_of(node):
+    return "dual", node
 
 
-def dual(node):
-    # todo
-    return None, node
+def un_dual_of(dual_of_node):
+    return dual_of_node[1]
 
 
-def gla(graph, atoms_list, x):
-    # Graph Lower Segment Atoms
-    # the following identity holds: gla(merge(x,y)) === gla(x) | gla(y)
-    in_neighs = list(zip(*graph.in_edges(x)))[0]
-    return set(in_neighs) & set(atoms_list)
+def subset_def(t_def, s_def):
+    # is T subset of S?
+    is_subset = True
+    for c in t_def[1]:
+        if c not in s_def[1]:
+            is_subset = False
+            break
+    return is_subset
 
 
-def crossing():
-    pass
+def create_master(consts, pos_def, neg_def):
+    training_def = pos_def + neg_def
 
-# each term is a merge of constants
-# each constant is a merge of atoms
+    master_atoms_list = [zero]
+    master_graph = nx.DiGraph()
+    master_graph.add_edge(zero, target)
+    master_graph.add_edges_from([(zero, c) for c in consts])
+    for t_def in training_def:
+        name, t = term(t_def, False)
+        master_graph.add_edges_from([(c, name) for c in t_def[1]])
+    for t_def in training_def:
+        for s_def in training_def:
+            if s_def is t_def:
+                continue
+            if subset_def(t_def, s_def):
+                master_graph.add_edge(term(t_def), term(s_def))
+
+    if closure:
+        master_graph = nx.algorithms.transitive_closure(master_graph)
+
+    # -------- COLORING --------
+    nx.set_node_attributes(master_graph, "k", "color")
+    nx.set_node_attributes(master_graph, {target: 'fuchsia', zero: 'b'}, "color")
+
+    dict_pos = {term(t_pos): 'lime' for t_pos in pos_def}
+    nx.set_node_attributes(master_graph, dict_pos, "color")
+
+    dict_neg = {term(t_neg): 'red' for t_neg in neg_def}
+    nx.set_node_attributes(master_graph, dict_neg, "color")
+    # --------------------------
+
+    return master_graph, master_atoms_list
 
 
-T1p = {constants[2 - 1], constants[7 - 1], constants[1 - 1], constants[8 - 1]}
-T2p = {constants[6 - 1], constants[3 - 1], constants[5 - 1], constants[4 - 1]}
-T1n = {constants[2 - 1], constants[7 - 1], constants[5 - 1], constants[4 - 1]}
-T2n = {constants[6 - 1], constants[3 - 1], constants[5 - 1], constants[8 - 1]}
-T3n = {constants[6 - 1], constants[7 - 1], constants[5 - 1], constants[4 - 1]}
+def create_dual(master_graph, pos_def, neg_def):
+    training_def = pos_def + neg_def
+    dual_atoms_list = [zero_star]
 
-positive_class_def, negative_class_def = [T1p, T2p], [T1n, T2n, T3n]
-# positive_class, negative_class = [merge_all(x) for x in positive_class_def], [merge_all(x) for x in negative_class_def]
-training_examples_def = positive_class_def + negative_class_def
+    dual_graph = master_graph.reverse()
+    dual_graph = nx.relabel_nodes(dual_graph, dict(zip(dual_graph.nodes, map(dual_of, dual_graph.nodes))))
+    dual_graph.add_edges_from([(zero_star, dual_of(term(t_def))) for t_def in training_def])
+    dual_graph.add_edges_from([(dual_of(term(t_def)), dual_of(target)) for t_def in pos_def])
 
-# v is a constant (the vertical bar in this example) which we want to describe to our algebra
+    if closure:
+        dual_graph = nx.algorithms.transitive_closure(dual_graph)
 
-# training_set R definition:
-#   for T in positive_class: v < T
-#   for T in negative_class: not (v < T)
+    # -------- COLORING --------
+    nx.set_node_attributes(dual_graph, "k", "color")
+    nx.set_node_attributes(dual_graph, {dual_of(target): 'fuchsia', zero_star: 'aqua', dual_of(zero): 'b'}, "color")
 
-# the graph G contains as nodes all T in both classes as well as v.
-# (a -> b) \implies (a < b), i. e., a subset of the partial order < is represented by G. todo
-# if all c_i of a term T also are part of a term S we add the edge (T -> S)
-# we always use edges if any of the elements involved are atoms: (\phi -> b) \iff (phi < b) todo
+    dict_pos = {dual_of(term(t_pos)): 'lime' for t_pos in pos_def}
+    nx.set_node_attributes(dual_graph, dict_pos, "color")
+
+    dict_neg = {dual_of(term(t_neg)): 'red' for t_neg in neg_def}
+    nx.set_node_attributes(dual_graph, dict_neg, "color")
+    # --------------------------
+
+    return dual_graph, dual_atoms_list
+
+
+def include_zeta_atoms(dual_graph, dual_atoms_list, neg_def):
+    n = len(dual_atoms_list)
+    new_atoms = ["zeta_" + str(i + n) for i in range(len(neg_def))]
+    duals_of_t_neg = [dual_of(term(t_def)) for t_def in neg_def]
+    dual_graph.add_edges_from((zip(new_atoms, duals_of_t_neg)))
+
+    if closure:
+        dual_graph = nx.algorithms.transitive_closure(dual_graph)
+
+    # -------- COLORING --------
+    nx.set_node_attributes(dual_graph, {atom: 'silver' for atom in new_atoms}, "color")
+    # --------------------------
+
+    dual_atoms_list += new_atoms
+    return dual_graph, dual_atoms_list
+
+
+def there_is_edge(g, node1, node2):
+    neighs = list(g[node1])
+    return node2 in neighs
+
+
+def Tr(S, x):
+    if S == "master":
+        g, g2, S2 = master, dual, "dual"
+    elif S == "dual":
+        g, g2, S2 = dual, master, "master"
+    else:
+        raise Exception('A is callable only with "master" or "dual" as argument.')
+
+    phi_set = GLa(g, S, x)
+    setlist = [GLa(g2, S2, dual_of(phi)) for phi in phi_set]
+
+    return set.intersection(*setlist)
+
+
+def GU(g, node):
+    return set(g[node])
+
+
+def GL(g, x):
+    in_neighs = list(zip(*g.in_edges(x)))[0]
+    return set(in_neighs)
+
+
+def GLa(g, S, x):
+    return GL(g, x) & A(S)
+
+
+def A(S):
+    if S == "master":
+        return set(master_atoms)
+    if S == "dual":
+        return set(dual_atoms)
+    raise Exception('A is callable only with "master" or "dual" as argument.')
+
+
+def C(S):
+    if S == "master":
+        ret = constants.copy()
+        ret += [target]
+        return set(ret)
+    if S == "dual":
+        ret = [dual_of(x) for x in constants]
+        ret.append(dual_of(target))
+        ret += [dual_of(term(t_def)) for t_def in pos_class + neg_class]
+        return set(ret)
+    raise Exception('C is callable only with "master" or "dual" as argument.')
+
+
+def random_pop(set_s):
+    x = random.choice(tuple(set_s))
+    set_s = set_s - {x}
+    return x, set_s
+
+
+def find_strongly_discriminant_constant(a, b):
+    omega_a = {dual_of(c) for c in GL(master, a) & C("master")}
+    u = Tr("master", b)
+    while u:
+        zeta, u = random_pop(u)
+        if omega_a - GU(dual, zeta):
+            dual_of_c = random.choice(tuple(omega_a - GU(dual, zeta)))
+            return un_dual_of(dual_of_c)
+    return None
+
+
+def enforce_negative_trace_constraints(neg_def, master_atoms_list, dual_atoms_list):
+    # todo: make this work!
+    a = target
+    for t_def in neg_def:
+        b = term(t_def)
+        if Tr("master", b).issubset(Tr("master", a)):
+            while True:
+                c = find_strongly_discriminant_constant(a, b)
+                if c is None:
+                    s1 = GL(dual, dual_of(b))
+                    s2 = C("dual")
+                    GLc_dual_of_b = s1 & s2
+                    choose_h_from_set = GLc_dual_of_b - GL(dual, dual_of(a))
+                    h = random.choice(tuple(choose_h_from_set))
+
+                    zeta = "zeta_" + str(len(dual_atoms_list) + 1)
+                    dual_atoms_list.append(zeta)
+                    dual.create_edge(zeta, h)
+                else:
+                    break
+            phi = "phi_" + str(len(master_atoms_list) + 1)
+            master_atoms_list.append(phi)
+            master.create_edge(phi, c)
+
+    return master_atoms_list, dual_atoms_list
+
+
+def is_consistent(dual_graph, pos_def, neg_def):
+    # fixme: function not working. If we test against a non-consistent dataset we get True anyway
+    consistent = True
+    training_def = pos_def + neg_def
+
+    for t1def in training_def:
+        for t2def in training_def:
+            if t2def is t1def:
+                continue
+            if subset_def(t1def, t2def):
+                dual_of_t1, dual_of_t2 = dual_of(term(t1def)), dual_of(term(t2def))
+                if not there_is_edge(dual_graph, dual_of_t2, dual_of_t1):
+                    consistent = False
+                    break
+        if not consistent:
+            break
+    return consistent
 
 
 if __name__ == '__main__':
+    # ------- DATA ---------
+    constants = [
+        ((None, None), (Color.BLACK, None)),
+        ((Color.BLACK, None), (None, None)),
+        ((None, Color.BLACK), (None, None)),
+        ((None, None), (None, Color.BLACK)),
+        ((None, None), (Color.WHITE, None)),
+        ((Color.WHITE, None), (None, None)),
+        ((None, Color.WHITE), (None, None)),
+        ((None, None), (None, Color.WHITE)),
+    ]
 
-    # the graph G contains as nodes all T in both classes as well as v.
-    G_start = nx.DiGraph()
-    master_atoms = [0]
-    #   for every term T which is DEFINED as the sum os constants c_i we add the edges (c_i -> T)
-    G_start.add_edge(0, 'v')
-    for c in constants:
-        G_start.add_edge(0, c)
-    for T_def in training_examples_def:
-        for c in T_def:
-            G_start.add_edge(c, merge_all(T_def))
+    T1_pos = ('T1_pos', {constants[2 - 1], constants[7 - 1], constants[1 - 1], constants[8 - 1]})
+    T2_pos = ('T2_pos', {constants[6 - 1], constants[3 - 1], constants[5 - 1], constants[4 - 1]})
+    T1_neg = ('T1_neg', {constants[2 - 1], constants[7 - 1], constants[5 - 1], constants[4 - 1]})
+    T2_neg = ('T2_neg', {constants[6 - 1], constants[3 - 1], constants[5 - 1], constants[8 - 1]})
+    T3_neg = ('T3_neg', {constants[6 - 1], constants[7 - 1], constants[5 - 1], constants[4 - 1]})
 
-    # if all c_i of a term T also are part of a term S we add the edge (T -> S)
-    for T_def in training_examples_def:
-        for S_def in training_examples_def:
-            T, S = merge_all(T_def), merge_all(S_def)
-            if T == S:
-                continue
-            bond = True
-            for c in T_def:
-                if c not in S_def:
-                    bond = False
-                    break
-            if bond:
-                G_start.add_edge(T, S)
+    pos_class, neg_class = [T1_pos, T2_pos], [T1_neg, T2_neg, T3_neg]
 
-    # the graph G of our algebra M which will evolve during the learning process
-    G_master = nx.algorithms.transitive_closure(G_start, reflexive=None)
+    # ----------------------
 
-    # # # # # DUALS
-    # Dual of constant or term --> constant
-    # Dual of atoms --> dual-of-atom
+    # c_m_star = [dual_of(target)] + [dual_of(x) for x in c_m] + [dual_of(term(x)) for x in pos_class + neg_class]
 
-    # M* has constants, dual-of-atoms and atoms, but does not have terms.
-    # Atoms in M* are not the dual of anything in M.
+    master, master_atoms = create_master(constants, pos_class, neg_class)
+    # draw_colored_graph(master, show=True)
 
-    # axiom: (a -> b) \implies ([b] -> [a])
-    G_dual = G_master.reverse()
-    mapping = dict(zip(G_dual.nodes, map(dual, G_dual.nodes)))
-    G_dual = nx.relabel_nodes(G_dual, mapping)
+    dual, dual_atoms = create_dual(master, pos_class, neg_class)
+    dual, dual_atoms = include_zeta_atoms(dual, dual_atoms, neg_class)
+    # todo: fix and print(is_consistent(dual, pos_class, neg_class))
+    # todo: merge pairs of dual nodes which are neighbor of each other. Two elements in M can share the same dual
+    # draw_colored_graph(dual, show=True)
 
-    dual_atoms = ['0*']
-    # adds the '0*' atom
-    for T_def in training_examples_def:
-        T = merge_all(T_def)
-        G_dual.add_edge('O*', dual(T))
+    # todo: master_atoms, dual_atoms = enforce_negative_trace_constraints(neg_class, master_atoms, dual_atoms)
 
-    # In M* we add additional edges for the positive order relations of R such as v < T1p
-    # add [T1p] -> [v]
-    for T_def in positive_class_def:
-        T = merge_all(T_def)
-        G_dual.add_edge(dual(T), dual('v'))
-    G_dual = nx.algorithms.transitive_closure(G_dual, False)
-
-    # nx.draw(G_master, pos=nx.spring_layout(G_master))
-    nx.draw(G_dual, pos=nx.spring_layout(G_dual))
-    # matplotlib.pyplot.show()
-
-    # # # # # DEBUG
-    print(pformat(list(G_dual.edges)))
-    # print(pformat(len(G_master.edges)))
-    # print(pformat(positive_class + negative_class))
-    # print(less(G, atoms, merge_all(negative_class_def[2]), merge_all(positive_class_def[1])))
+    # todo: enforce_positive_trace_constraints
