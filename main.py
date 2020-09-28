@@ -1,7 +1,6 @@
 import random
 from itertools import accumulate
 from enum import Enum
-from pprint import pformat
 import networkx as nx
 from matplotlib import pyplot
 
@@ -82,7 +81,7 @@ def subset_def(t_def, s_def):
     return is_subset
 
 
-def create_master(consts, pos_def, neg_def):
+def create_master():
     training_def = pos_def + neg_def
 
     master_atoms_list = [zero]
@@ -104,7 +103,7 @@ def create_master(consts, pos_def, neg_def):
 
     # -------- COLORING --------
     nx.set_node_attributes(master_graph, "k", "color")
-    nx.set_node_attributes(master_graph, {target: 'fuchsia', zero: 'b'}, "color")
+    nx.set_node_attributes(master_graph, {target: 'gray', zero: 'b'}, "color")
 
     dict_pos = {term(t_pos): 'lime' for t_pos in pos_def}
     nx.set_node_attributes(master_graph, dict_pos, "color")
@@ -116,11 +115,11 @@ def create_master(consts, pos_def, neg_def):
     return master_graph, master_atoms_list
 
 
-def create_dual(master_graph, pos_def, neg_def):
+def create_dual():
     training_def = pos_def + neg_def
     dual_atoms_list = [zero_star]
 
-    dual_graph = master_graph.reverse()
+    dual_graph = master.reverse()
     dual_graph = nx.relabel_nodes(dual_graph, dict(zip(dual_graph.nodes, map(dual_of, dual_graph.nodes))))
     dual_graph.add_edges_from([(zero_star, dual_of(term(t_def))) for t_def in training_def])
     dual_graph.add_edges_from([(dual_of(term(t_def)), dual_of(target)) for t_def in pos_def])
@@ -130,7 +129,7 @@ def create_dual(master_graph, pos_def, neg_def):
 
     # -------- COLORING --------
     nx.set_node_attributes(dual_graph, "k", "color")
-    nx.set_node_attributes(dual_graph, {dual_of(target): 'fuchsia', zero_star: 'aqua', dual_of(zero): 'b'}, "color")
+    nx.set_node_attributes(dual_graph, {dual_of(target): 'gray', zero_star: 'aqua', dual_of(zero): 'b'}, "color")
 
     dict_pos = {dual_of(term(t_pos)): 'lime' for t_pos in pos_def}
     nx.set_node_attributes(dual_graph, dict_pos, "color")
@@ -142,7 +141,7 @@ def create_dual(master_graph, pos_def, neg_def):
     return dual_graph, dual_atoms_list
 
 
-def include_zeta_atoms(dual_graph, dual_atoms_list, neg_def):
+def include_zeta_atoms(dual_graph, dual_atoms_list):
     n = len(dual_atoms_list)
     new_atoms = ["zeta_" + str(i + n) for i in range(len(neg_def))]
     duals_of_t_neg = [dual_of(term(t_def)) for t_def in neg_def]
@@ -152,7 +151,7 @@ def include_zeta_atoms(dual_graph, dual_atoms_list, neg_def):
         dual_graph = nx.algorithms.transitive_closure(dual_graph)
 
     # -------- COLORING --------
-    nx.set_node_attributes(dual_graph, {atom: 'silver' for atom in new_atoms}, "color")
+    nx.set_node_attributes(dual_graph, {atom: 'orange' for atom in new_atoms}, "color")
     # --------------------------
 
     dual_atoms_list += new_atoms
@@ -164,7 +163,7 @@ def there_is_edge(g, node1, node2):
     return node2 in neighs
 
 
-def Tr(S, x):
+def Tr(S, x, master_atoms_list, dual_atoms_list):
     if S == "master":
         g, g2, S2 = master, dual, "dual"
     elif S == "dual":
@@ -172,8 +171,11 @@ def Tr(S, x):
     else:
         raise Exception('A is callable only with "master" or "dual" as argument.')
 
-    phi_set = GLa(g, S, x)
-    setlist = [GLa(g2, S2, dual_of(phi)) for phi in phi_set]
+    phi_set = GLa(g, S, x, master_atoms_list, dual_atoms_list)
+    setlist = []
+    for phi in phi_set:
+        gla = GLa(g2, S2, dual_of(phi), master_atoms_list, dual_atoms_list)
+        setlist.append(gla)
 
     return set.intersection(*setlist)
 
@@ -184,30 +186,30 @@ def GU(g, node):
 
 def GL(g, x):
     in_neighs = list(zip(*g.in_edges(x)))[0]
-    return set(in_neighs)
+    return set(in_neighs) | {x}
 
 
-def GLa(g, S, x):
-    return GL(g, x) & A(S)
+def GLa(g, S, x, master_atoms_list, dual_atoms_list):
+    return GL(g, x) & A(S, master_atoms_list, dual_atoms_list)
 
 
-def A(S):
+def A(S, master_atoms_list, dual_atoms_list):
     if S == "master":
-        return set(master_atoms)
+        return set(master_atoms_list)
     if S == "dual":
-        return set(dual_atoms)
+        return set(dual_atoms_list)
     raise Exception('A is callable only with "master" or "dual" as argument.')
 
 
 def C(S):
     if S == "master":
-        ret = constants.copy()
+        ret = consts.copy()
         ret += [target]
         return set(ret)
     if S == "dual":
-        ret = [dual_of(x) for x in constants]
+        ret = [dual_of(x) for x in consts]
         ret.append(dual_of(target))
-        ret += [dual_of(term(t_def)) for t_def in pos_class + neg_class]
+        ret += [dual_of(term(t_def)) for t_def in pos_def + neg_def]
         return set(ret)
     raise Exception('C is callable only with "master" or "dual" as argument.')
 
@@ -218,9 +220,9 @@ def random_pop(set_s):
     return x, set_s
 
 
-def find_strongly_discriminant_constant(a, b):
+def find_strongly_discriminant_constant(a, b, master_atoms_list, dual_atoms_list):
     omega_a = {dual_of(c) for c in GL(master, a) & C("master")}
-    u = Tr("master", b)
+    u = Tr("master", b, master_atoms_list, dual_atoms_list)
     while u:
         zeta, u = random_pop(u)
         if omega_a - GU(dual, zeta):
@@ -229,14 +231,16 @@ def find_strongly_discriminant_constant(a, b):
     return None
 
 
-def enforce_negative_trace_constraints(neg_def, master_atoms_list, dual_atoms_list):
+def enforce_negative_trace_constraints(master_atoms_list, dual_atoms_list):
     # todo: make this work!
     a = target
     for t_def in neg_def:
         b = term(t_def)
-        if Tr("master", b).issubset(Tr("master", a)):
+        tr_b = Tr("master", b, master_atoms_list, dual_atoms_list)
+        tr_a = Tr("master", a, master_atoms_list, dual_atoms_list)
+        if tr_b.issubset(tr_a):
             while True:
-                c = find_strongly_discriminant_constant(a, b)
+                c = find_strongly_discriminant_constant(a, b, master_atoms_list, dual_atoms_list)
                 if c is None:
                     s1 = GL(dual, dual_of(b))
                     s2 = C("dual")
@@ -246,17 +250,25 @@ def enforce_negative_trace_constraints(neg_def, master_atoms_list, dual_atoms_li
 
                     zeta = "zeta_" + str(len(dual_atoms_list) + 1)
                     dual_atoms_list.append(zeta)
-                    dual.create_edge(zeta, h)
+                    dual.add_edge(zeta, h)
+                    # ---- COLORING ------
+                    nx.set_node_attributes(dual, {zeta: 'sienna'}, "color")
+                    # --------------------
                 else:
                     break
-            phi = "phi_" + str(len(master_atoms_list) + 1)
+            phi = "phi_" + str(len(master_atoms_list))
             master_atoms_list.append(phi)
-            master.create_edge(phi, c)
+            master.add_edge(phi, c)
+            dual.add_edge(dual_of(target), dual_of(phi))
+            # ---- COLORING ------
+            nx.set_node_attributes(master, {phi: 'orchid'}, "color")
+            nx.set_node_attributes(dual, {dual_of(phi): 'orchid'}, "color")
+            # --------------------
 
     return master_atoms_list, dual_atoms_list
 
 
-def is_consistent(dual_graph, pos_def, neg_def):
+def is_consistent(dual_graph):
     # fixme: function not working. If we test against a non-consistent dataset we get True anyway
     consistent = True
     training_def = pos_def + neg_def
@@ -277,7 +289,7 @@ def is_consistent(dual_graph, pos_def, neg_def):
 
 if __name__ == '__main__':
     # ------- DATA ---------
-    constants = [
+    consts = [
         ((None, None), (Color.BLACK, None)),
         ((Color.BLACK, None), (None, None)),
         ((None, Color.BLACK), (None, None)),
@@ -288,27 +300,28 @@ if __name__ == '__main__':
         ((None, None), (None, Color.WHITE)),
     ]
 
-    T1_pos = ('T1_pos', {constants[2 - 1], constants[7 - 1], constants[1 - 1], constants[8 - 1]})
-    T2_pos = ('T2_pos', {constants[6 - 1], constants[3 - 1], constants[5 - 1], constants[4 - 1]})
-    T1_neg = ('T1_neg', {constants[2 - 1], constants[7 - 1], constants[5 - 1], constants[4 - 1]})
-    T2_neg = ('T2_neg', {constants[6 - 1], constants[3 - 1], constants[5 - 1], constants[8 - 1]})
-    T3_neg = ('T3_neg', {constants[6 - 1], constants[7 - 1], constants[5 - 1], constants[4 - 1]})
+    T1_pos = ('T1_pos', {consts[2 - 1], consts[7 - 1], consts[1 - 1], consts[8 - 1]})
+    T2_pos = ('T2_pos', {consts[6 - 1], consts[3 - 1], consts[5 - 1], consts[4 - 1]})
+    T1_neg = ('T1_neg', {consts[2 - 1], consts[7 - 1], consts[5 - 1], consts[4 - 1]})
+    T2_neg = ('T2_neg', {consts[6 - 1], consts[3 - 1], consts[5 - 1], consts[8 - 1]})
+    T3_neg = ('T3_neg', {consts[6 - 1], consts[7 - 1], consts[5 - 1], consts[4 - 1]})
 
-    pos_class, neg_class = [T1_pos, T2_pos], [T1_neg, T2_neg, T3_neg]
-
+    pos_def, neg_def = [T1_pos, T2_pos], [T1_neg, T2_neg, T3_neg]
     # ----------------------
 
-    # c_m_star = [dual_of(target)] + [dual_of(x) for x in c_m] + [dual_of(term(x)) for x in pos_class + neg_class]
+    random.seed(0)  # todo: delete this line?
 
-    master, master_atoms = create_master(constants, pos_class, neg_class)
+    master, master_atoms = create_master()
     # draw_colored_graph(master, show=True)
 
-    dual, dual_atoms = create_dual(master, pos_class, neg_class)
-    dual, dual_atoms = include_zeta_atoms(dual, dual_atoms, neg_class)
+    dual, dual_atoms = create_dual()
+    dual, dual_atoms = include_zeta_atoms(dual, dual_atoms)
     # todo: fix and print(is_consistent(dual, pos_class, neg_class))
     # todo: merge pairs of dual nodes which are neighbor of each other. Two elements in M can share the same dual
     # draw_colored_graph(dual, show=True)
 
-    # todo: master_atoms, dual_atoms = enforce_negative_trace_constraints(neg_class, master_atoms, dual_atoms)
+    master_atoms, dual_atoms = enforce_negative_trace_constraints(master_atoms, dual_atoms)
+    draw_colored_graph(master, show=True)
+    draw_colored_graph(dual, show=True)
 
     # todo: enforce_positive_trace_constraints
