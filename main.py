@@ -1,9 +1,15 @@
+import random
+import numpy
+import networkx as nx
+from pprint import pformat
+from matplotlib import pyplot
 from itertools import accumulate
 from enum import Enum
-# from pprint import pformat
+from ordered_set import OrderedSet
 
-import networkx as nx
-from matplotlib import pyplot
+seed = 123456  # or any fixed integer
+random.seed(seed)
+numpy.random.seed(seed)
 
 target, zero, zero_star = 'v', '0', '0*'
 closure = True
@@ -29,6 +35,16 @@ class Color(Enum):
             return Color.BOTH
         if self == Color.BLACK and other == Color.WHITE:
             return Color.BOTH
+
+    def __lt__(self, other):
+        if other is None:
+            print("wow")
+            return False
+
+    def __gt__(self, other):
+        if other is None:
+            print("wow2")
+            return True
 
 
 def merge(a, b):
@@ -71,14 +87,14 @@ def un_dual_of(dual_of_node):
     return dual_of_node[1]
 
 
-def subset_def(t_def, s_def):
-    # is T subset of S?
-    is_subset = True
+def subSet_def(t_def, s_def):
+    # is T subSet of S?
+    is_subSet = True
     for c in t_def[1]:
         if c not in s_def[1]:
-            is_subset = False
+            is_subSet = False
             break
-    return is_subset
+    return is_subSet
 
 
 def create_master():
@@ -95,7 +111,7 @@ def create_master():
         for s_def in training_def:
             if s_def is t_def:
                 continue
-            if subset_def(t_def, s_def):
+            if subSet_def(t_def, s_def):
                 master_graph.add_edge(term(t_def), term(s_def))
 
     if closure:
@@ -141,21 +157,21 @@ def create_dual():
     return dual_graph, dual_atoms_list
 
 
-def include_zeta_atoms(dual_graph, dual_atoms_list):
-    n = len(dual_atoms_list)
+def include_zeta_atoms():
+    global dual, dual_atoms
+    n = len(dual_atoms)
     new_atoms = ["zeta_" + str(i + n) for i in range(len(neg_def))]
     duals_of_t_neg = [dual_of(term(t_def)) for t_def in neg_def]
-    dual_graph.add_edges_from((zip(new_atoms, duals_of_t_neg)))
+    dual.add_edges_from((zip(new_atoms, duals_of_t_neg)))
 
     if closure:
-        dual_graph = nx.algorithms.transitive_closure(dual_graph)
+        dual = nx.algorithms.transitive_closure(dual)
 
     # -------- COLORING --------
-    nx.set_node_attributes(dual_graph, {atom: 'orange' for atom in new_atoms}, "color")
+    nx.set_node_attributes(dual, {atom: 'orange' for atom in new_atoms}, "color")
     # --------------------------
 
-    dual_atoms_list += new_atoms
-    return dual_graph, dual_atoms_list
+    dual_atoms += new_atoms
 
 
 def there_is_edge(g, node1, node2):
@@ -163,41 +179,47 @@ def there_is_edge(g, node1, node2):
     return node2 in neighs
 
 
-def Tr(S, x, master_atoms_list, dual_atoms_list):
+def Tr(S, x):
     if S == "master":
-        g, g2, S2 = master, dual, "dual"
+        g, S2 = master, "dual"
     elif S == "dual":
-        g, g2, S2 = dual, master, "master"
+        g, S2 = dual, "master"
     else:
-        raise Exception('A is callable only with "master" or "dual" as argument.')
+        raise Exception('Tr is callable only with "master" or "dual" as argument.')
 
-    phi_set = GLa(g, S, x, master_atoms_list, dual_atoms_list)
-    setlist = []
-    for phi in phi_set:
-        gla = GLa(g2, S2, dual_of(phi), master_atoms_list, dual_atoms_list)
-        setlist.append(gla)
+    phi_Set = GLa(S, x)
+    Setlist = []
+    for phi in phi_Set:
+        gla = GLa(S2, dual_of(phi))
+        Setlist.append(gla)
 
-    return set.intersection(*setlist)
+    return OrderedSet.intersection(*Setlist)
 
 
 def GU(g, node):
-    return set(g[node])
+    return OrderedSet(g[node])
 
 
 def GL(g, x):
     in_neighs = list(zip(*g.in_edges(x)))[0]
-    return set(in_neighs) | {x}
+    return OrderedSet(in_neighs) | {x}
 
 
-def GLa(g, S, x, master_atoms_list, dual_atoms_list):
-    return GL(g, x) & A(S, master_atoms_list, dual_atoms_list)
-
-
-def A(S, master_atoms_list, dual_atoms_list):
+def GLa(S, x):
     if S == "master":
-        return set(master_atoms_list)
+        g = master
+    elif S == "dual":
+        g = dual
+    else:
+        raise Exception('GLa is callable only with "master" or "dual" as argument.')
+    return GL(g, x) & A(S)
+
+
+def A(S):
+    if S == "master":
+        return OrderedSet(master_atoms)
     if S == "dual":
-        return set(dual_atoms_list)
+        return OrderedSet(dual_atoms)
     raise Exception('A is callable only with "master" or "dual" as argument.')
 
 
@@ -205,58 +227,52 @@ def C(S):
     if S == "master":
         ret = consts.copy()
         ret += [target]
-        return set(ret)
+        return OrderedSet(ret)
     if S == "dual":
         ret = [dual_of(x) for x in consts]
         ret.append(dual_of(target))
         ret += [dual_of(term(t_def)) for t_def in pos_def + neg_def]
-        return set(ret)
+        return OrderedSet(ret)
     raise Exception('C is callable only with "master" or "dual" as argument.')
 
 
-def random_pop(set_s):
-    x = random_choice(set_s)
-    set_s.remove(x)
-    return x, set_s
+def random_pop(Set_s):
+    x = random.choice(tuple(Set_s))
+    Set_s.remove(x)
+    return x, Set_s
 
 
-def random_choice(set_s):
-    # todo: use random module and random.seed(0) to guarantee the same result always
-    seq = list(set_s)
-    seq = sorted(seq, key=hash)
-    return seq[0]
-
-
-def find_strongly_discriminant_constant(a, b, master_atoms_list, dual_atoms_list):
-    omega_a = {dual_of(c) for c in GL(master, a) & C("master")}
-    u = Tr("master", b, master_atoms_list, dual_atoms_list)
+def find_strongly_discriminant_constant(a, b):
+    global master_atoms, dual_atoms
+    omega_a = OrderedSet(dual_of(c) for c in GL(master, a) & C("master"))
+    u = Tr("master", b)
     while u:
         zeta, u = random_pop(u)
         if omega_a - GU(dual, zeta):
-            dual_of_c = random_choice(omega_a - GU(dual, zeta))
+            dual_of_c = random.choice(tuple(omega_a - GU(dual, zeta)))
             return un_dual_of(dual_of_c)
     return None
 
 
-def enforce_negative_trace_constraints(master_atoms_list, dual_atoms_list):
-    global master, dual
+def enforce_negative_trace_constraints():
+    global master, dual, master_atoms, dual_atoms
     a = target
     for t_def in neg_def:
         b = term(t_def)
-        tr_b = Tr("master", b, master_atoms_list, dual_atoms_list)
-        tr_a = Tr("master", a, master_atoms_list, dual_atoms_list)
+        tr_b = Tr("master", b)
+        tr_a = Tr("master", a)
         if tr_b.issubset(tr_a):
             while True:
-                c = find_strongly_discriminant_constant(a, b, master_atoms_list, dual_atoms_list)
+                c = find_strongly_discriminant_constant(a, b)
                 if c is None:
                     s1 = GL(dual, dual_of(b))
                     s2 = C("dual")
                     GLc_dual_of_b = s1 & s2
-                    choose_h_from_set = GLc_dual_of_b - GL(dual, dual_of(a))
-                    h = random_choice(choose_h_from_set)
+                    choose_h_from_Set = GLc_dual_of_b - GL(dual, dual_of(a))
+                    h = random.choice(tuple(choose_h_from_Set))
 
-                    zeta = "zeta_" + str(len(dual_atoms_list) + 1)
-                    dual_atoms_list.append(zeta)
+                    zeta = "zeta_" + str(len(dual_atoms) + 1)
+                    dual_atoms.append(zeta)
                     dual.add_edge(zeta, h)
                     if closure:
                         dual = nx.algorithms.transitive_closure(dual)
@@ -265,8 +281,8 @@ def enforce_negative_trace_constraints(master_atoms_list, dual_atoms_list):
                     # --------------------
                 else:
                     break
-            phi = "phi_" + str(len(master_atoms_list))
-            master_atoms_list.append(phi)
+            phi = "phi_" + str(len(master_atoms))
+            master_atoms.append(phi)
             master.add_edge(phi, c)
             dual.add_edge(dual_of(c), dual_of(phi))
             if closure:
@@ -277,22 +293,20 @@ def enforce_negative_trace_constraints(master_atoms_list, dual_atoms_list):
             nx.set_node_attributes(dual, {dual_of(phi): 'orchid'}, "color")
             # --------------------
 
-    return master_atoms_list, dual_atoms_list
 
-
-def enforce_positive_trace_constraints(master_atoms_list, dual_atoms_list):
-    global master, dual
+def enforce_positive_trace_constraints():
+    global master, dual, master_atoms, dual_atoms
     d = target
     for t_def in pos_def:
         e = term(t_def)
-        tr_e = Tr("master", e, master_atoms_list, dual_atoms_list)
-        tr_d = Tr("master", d, master_atoms_list, dual_atoms_list)
-        is_subset = tr_e.issubset(tr_d)
-        set_diff = tr_e - tr_d
-        while not is_subset:
-            zeta = random_choice(set_diff)
+        tr_e = Tr("master", e)
+        tr_d = Tr("master", d)
+        is_subSet = tr_e.issubset(tr_d)
+        Set_diff = tr_e - tr_d
+        while not is_subSet:
+            zeta = random.choice(tuple(Set_diff))
             c_is_in = GL(master, e) & C("master")
-            Gamma = set()
+            Gamma = OrderedSet()
             for c in c_is_in:
                 gl = GL(dual, dual_of(c))
                 if zeta not in gl:
@@ -302,10 +316,10 @@ def enforce_positive_trace_constraints(master_atoms_list, dual_atoms_list):
                 if closure:
                     dual = nx.algorithms.transitive_closure(dual)
             else:
-                c = random_choice(Gamma)
+                c = random.choice(tuple(Gamma))
 
-                phi = "phi_" + str(len(master_atoms_list))
-                master_atoms_list.append(phi)
+                phi = "phi_" + str(len(master_atoms))
+                master_atoms.append(phi)
                 master.add_edge(phi, c)
                 dual.add_edge(dual_of(c), dual_of(phi))
                 if closure:
@@ -316,16 +330,15 @@ def enforce_positive_trace_constraints(master_atoms_list, dual_atoms_list):
                 nx.set_node_attributes(dual, {dual_of(phi): 'purple'}, "color")
                 # --------------------
 
-            tr_e = Tr("master", e, master_atoms_list, dual_atoms_list)
-            tr_d = Tr("master", d, master_atoms_list, dual_atoms_list)
-            is_subset = tr_e.issubset(tr_d)
-            set_diff = tr_e - tr_d
-
-    return master_atoms_list, dual_atoms_list
+            tr_e = Tr("master", e)
+            tr_d = Tr("master", d)
+            is_subSet = tr_e.issubset(tr_d)
+            Set_diff = tr_e - tr_d
 
 
-def is_consistent(dual_graph):
-    # fixme: function not working. If we test against a non-consistent dataset we get True anyway
+def is_consistent():
+    global dual
+    # function is not working properly. If we test against a non-consistent dataSet we get True anyway
     consistent = True
     training_def = pos_def + neg_def
 
@@ -333,9 +346,9 @@ def is_consistent(dual_graph):
         for t2def in training_def:
             if t2def is t1def:
                 continue
-            if subset_def(t1def, t2def):
+            if subSet_def(t1def, t2def):
                 dual_of_t1, dual_of_t2 = dual_of(term(t1def)), dual_of(term(t2def))
-                if not there_is_edge(dual_graph, dual_of_t2, dual_of_t1):
+                if not there_is_edge(dual, dual_of_t2, dual_of_t1):
                     consistent = False
                     break
         if not consistent:
@@ -344,7 +357,6 @@ def is_consistent(dual_graph):
 
 
 if __name__ == '__main__':
-    # random.seed(0)  # todo: should I delete this line?
     # ------- DATA ---------
     consts = [
         ((None, None), (Color.BLACK, None)),
@@ -367,23 +379,17 @@ if __name__ == '__main__':
     # ----------------------
 
     master, master_atoms = create_master()
-    # draw_colored_graph(master, show=True)
 
     dual, dual_atoms = create_dual()
-    dual, dual_atoms = include_zeta_atoms(dual, dual_atoms)
+    include_zeta_atoms()
     # todo: fix and print(is_consistent(dual, pos_class, neg_class))
-    # todo: merge pairs of dual nodes which are neighbor of each other. Two elements in M can share the same dual
-    # draw_colored_graph(dual, show=True)
+    #  merge pairs of dual nodes which are neighbor of each other. Two elements in M can share the same dual
 
-    master_atoms, dual_atoms = enforce_negative_trace_constraints(master_atoms, dual_atoms)
-    # draw_colored_graph(master, show=True)
-    # draw_colored_graph(dual, show=True)
-
-    master_atoms, dual_atoms = enforce_positive_trace_constraints(master_atoms, dual_atoms)
+    enforce_negative_trace_constraints()
+    enforce_positive_trace_constraints()
     draw_colored_graph(master, show=True)
     draw_colored_graph(dual, show=True)
 
-    # todo: make the following number of atoms always the same
-    #  (I could not get the random module to do that for me)
     print("#master_atoms =", len(master_atoms))
-    # print(pformat(list(master.edges)))
+    print("#dual_atoms =", len(dual_atoms))
+    print(pformat(list(master.edges)))
