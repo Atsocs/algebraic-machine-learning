@@ -260,7 +260,7 @@ def find_strongly_discriminant_constant(a, b):
 
 def enforce_negative_trace_constraints():
     global master, dual, master_atoms, dual_atoms
-    ret = 0
+    nodes_created = 0
     a = target
     for t_def in neg_def:
         b = term(t_def)
@@ -276,7 +276,7 @@ def enforce_negative_trace_constraints():
                     choose_h_from_Set = GLc_dual_of_b - GL(dual, dual_of(a))
                     h = random.choice(tuple(choose_h_from_Set))
                     zeta = "zeta_" + str(len(dual_atoms) + 1)
-                    ret += 1
+                    nodes_created += 1
                     dual_atoms.append(zeta)
                     dual.add_edge(zeta, h)
                     if closure:
@@ -287,7 +287,7 @@ def enforce_negative_trace_constraints():
                 else:
                     break
             phi = "phi_" + str(len(master_atoms))
-            ret += 1
+            nodes_created += 1
             master_atoms.append(phi)
             master.add_edge(phi, c)
             dual.add_edge(dual_of(c), dual_of(phi))
@@ -298,15 +298,18 @@ def enforce_negative_trace_constraints():
             nx.set_node_attributes(master, {phi: 'orchid'}, "color")
             nx.set_node_attributes(dual, {dual_of(phi): 'orchid'}, "color")
             # --------------------
-    return ret
+    return nodes_created
 
 
-def enforce_positive_trace_constraints():
+def enforce_positive_trace_constraints(just_one_pos_term=False, t=None):
     global master, dual, master_atoms, dual_atoms
-    ret = 0
+    nodes_created = 0
     d = target
-    for t_def in pos_def:
-        e = term(t_def)
+    if not just_one_pos_term:
+        pos_terms_to_enforce = map(term, pos_def)
+    else:
+        pos_terms_to_enforce = [t]
+    for e in pos_terms_to_enforce:
         tr_e = Tr("master", e)
         tr_d = Tr("master", d)
         is_subSet = tr_e.issubset(tr_d)
@@ -327,7 +330,7 @@ def enforce_positive_trace_constraints():
                 c = random.choice(tuple(Gamma))
 
                 phi = "phi_" + str(len(master_atoms))
-                ret += 1
+                nodes_created += 1
                 master_atoms.append(phi)
                 master.add_edge(phi, c)
                 dual.add_edge(dual_of(c), dual_of(phi))
@@ -343,6 +346,86 @@ def enforce_positive_trace_constraints():
             tr_d = Tr("master", d)
             is_subSet = tr_e.issubset(tr_d)
             Set_diff = tr_e - tr_d
+    return nodes_created
+
+
+def same(ordered_set_1, ordered_set_2):
+    if len(ordered_set_2) != len(ordered_set_1):
+        return False
+    for a in ordered_set_1:
+        if a not in ordered_set_2:
+            return False
+    return True
+
+
+def sparse_crossing(a, b):
+    global master, dual, master_atoms
+    nodes_created = 0
+    AA = GLa("master", a) - GL(master, b)
+    U = OrderedSet()
+    for phi in AA:
+        U, B, Del = OrderedSet(), GLa("master", b), A("dual") - GL(dual, dual_of(phi))
+        while True:
+            eps = random.choice(tuple(B))
+            Del_prime = Del & GL(dual, dual_of(eps))
+            if (not Del) or (not same(Del_prime, Del)):
+                psi = "psi_" + str(len(master_atoms) + 1)
+                nodes_created += 1
+                master.add_edge(psi, phi)
+                master.add_edge(psi, eps)
+                dual.add_edge(dual_of(phi), dual_of(psi))
+                dual.add_edge(dual_of(eps), dual_of(psi))
+                master_atoms.append(psi)
+                if closure:
+                    master = nx.algorithms.transitive_closure(master)
+                    dual = nx.algorithms.transitive_closure(dual)
+                # ---- COLORING ------
+                nx.set_node_attributes(master, {psi: 'orchid'}, "color")
+                nx.set_node_attributes(dual, {dual_of(psi): 'orchid'}, "color")
+                # --------------------
+
+                Del = Del_prime
+                U.append(eps)
+            B.remove(eps)
+            if not Del:
+                break
+    for eps in U:
+        eps_prime = "eps_prime_" + str(len(master_atoms) + 1)
+        nodes_created += 1
+        master.add_edge(eps_prime, eps)
+        dual.add_edge(dual_of(eps_prime), dual_of(eps))
+        master_atoms.append(eps_prime)
+        if closure:
+            master = nx.algorithms.transitive_closure(master)
+            dual = nx.algorithms.transitive_closure(dual)
+        # ---- COLORING ------
+        nx.set_node_attributes(master, {eps_prime: 'orchid'}, "color")
+        nx.set_node_attributes(dual, {dual_of(eps_prime): 'orchid'}, "color")
+        # --------------------
+    nodes_to_remove = U | AA
+    nodes_removed = len(nodes_to_remove)
+    duals = map(dual_of, nodes_to_remove)
+
+    master.remove_nodes_from(U | AA)
+    dual.remove_nodes_from(duals)
+    master_atoms = [elem for elem in master_atoms if (elem not in nodes_to_remove)]
+
+    if closure:
+        master = nx.algorithms.transitive_closure(master)
+        dual = nx.algorithms.transitive_closure(dual)
+
+    ret = nodes_created - nodes_removed
+    ret += enforce_negative_trace_constraints()
+    ret += enforce_positive_trace_constraints(True, b)
+    return ret
+
+
+def sparse_crossing_all_positive_relations():
+    a = target
+    ret = 0
+    for t_def in pos_def:
+        b = term(t_def)
+        ret += sparse_crossing(a, b)
     return ret
 
 
@@ -374,7 +457,7 @@ def less(S, a, b):
         graph, atoms_list = dual, dual_atoms
     else:
         raise Exception('less is callable only with "master" or "dual" as S argument.')
-    
+
     # a < b iff (for all phi in atoms_list, (phi not -> a) or (phi -> b))
     for phi in atoms_list:
         neighbors = graph[phi]
@@ -423,7 +506,10 @@ if __name__ == '__main__':
         else:
             break
 
-    drawing = False
+    n = sparse_crossing_all_positive_relations()
+    print("sparse_crossing creates minus removes", n, "atoms")
+
+    drawing = True
     if drawing:
         fig = pyplot.figure(figsize=(10, 5))
         ax1 = fig.add_subplot(1, 2, 1)
@@ -441,6 +527,7 @@ if __name__ == '__main__':
     print("#master_edges =", len(master.edges))
     print("#dual_edges =", len(dual.edges))
     print("(target < T_i_neg) =", [less("master", target, term(x)) for x in neg_def])  # Should be a list of False's
+    print("(target < T_i_pos) =", [less("master", target, term(x)) for x in pos_def])
 
     print_edges = False
     if print_edges:
