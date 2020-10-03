@@ -388,19 +388,20 @@ def algorithm6(r_pin=None):
 # -------------------------------------
 
 
-def draw_graph(g, node_size=900):
+def draw_graph(g, avoid_clutter=True, node_size=900):
     types = list((nx.get_node_attributes(g, "type")).values())
     mapping = {"atom": "b", "constant": "g", "term": "r",
                d("atom"): "c", d("constant"): "m", d("dual-of-atom"): "y"}
     colors = [mapping[x] for x in types]
     # pos = nx.spring_layout(g)
     pos = nx.drawing.nx_agraph.graphviz_layout(g, prog="dot")
-    g = nx.transitive_reduction(g)
+    if avoid_clutter:
+        g = nx.transitive_reduction(g)
     nx.draw(g, pos, node_size=node_size, edgecolors=colors, node_color="white", linewidths=2.0)
     nx.draw_networkx_labels(g, pos, font_size=10, font_family='sans-serif')
 
 
-def draw(oneFigure=False):
+def draw(oneFigure=False, saveFigure=False):
     if oneFigure:
         fig = pyplot.figure(figsize=(8, 10))
         ax1 = fig.add_subplot(2, 1, 1)
@@ -411,14 +412,24 @@ def draw(oneFigure=False):
         draw_graph(master, node_size=600)
         pyplot.subplot(ax2)
         draw_graph(dual, node_size=600)
-        pyplot.show()
+        if not saveFigure:
+            pyplot.show()
+        else:
+            pyplot.savefig("both.png")
     else:
         pyplot.suptitle("Master")
         draw_graph(master)
-        pyplot.show()
+        if not saveFigure:
+            pyplot.show()
+        else:
+            pyplot.savefig("master.png")
+        pyplot.clf()
         pyplot.suptitle("Dual")
         draw_graph(dual)
-        pyplot.show()
+        if not saveFigure:
+            pyplot.show()
+        else:
+            pyplot.savefig("dual.png")
 
 
 def main():
@@ -454,7 +465,7 @@ def main():
     for i in range(3):
         atom_set_reduction_for_the_dual_algebra(r_neg)
         # draw()
-    draw(True)
+    draw(oneFigure=True)
 
     print("master.edges:", pformat(list(master.edges)))
     print("dual.edges:", pformat(list(dual.edges)))
