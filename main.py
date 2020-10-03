@@ -22,7 +22,10 @@ def und(x):
 
 
 def ggl(g, x):
-    in_neighs = list(zip(*g.in_edges(x)))[0]
+    in_edges = g.in_edges(x)
+    if not in_edges:
+        return OrderedSet({x})
+    in_neighs = list(zip(*in_edges))[0]
     return OrderedSet(in_neighs) | {x}
 
 
@@ -82,11 +85,31 @@ def dual_gu(x):
     return ggu(dual, x)
 
 
+def master_u(x):
+    return OrderedSet(y for y in master.nodes if less(x, y))
+
+
+def dual_u(x):
+    return OrderedSet(y for y in dual.nodes if less(x, y))
+
+
 def trace(x):
-    # x is always member of master
+    # x is always a member of master
     phi_set = master_gla(x)
-    set_list = [dual_gla(d(phi)) for phi in phi_set]
-    return OrderedSet.intersection(*set_list)
+    if phi_set:
+        set_list = [dual_gla(d(phi)) for phi in phi_set]
+        return OrderedSet.intersection(*set_list)
+    else:
+        return None
+        # raise Exception("trace(x): x contains no atoms")
+
+
+def master_dis(a, b):
+    return master_gla(a) - master_gla(b)
+
+
+def dual_dis(a, b):
+    return dual_gla(a) - dual_gla(b)
 
 
 def less(a, b):
@@ -115,6 +138,11 @@ def new_atom(name):
 def new_phi():
     master.graph["phi"] += 1
     return r"$\phi_{" + str(master.graph["phi"]) + r"}$"
+
+
+def new_Tphi():
+    master.graph["Tphi"] += 1
+    return r"$T\phi_{" + str(master.graph["Tphi"]) + r"}$"
 
 
 def new_epsilon():
@@ -154,6 +182,7 @@ def populate_master():
     master = nx.transitive_closure(master)
     master.graph["phi"] = 0
     master.graph["epsilon"] = 0
+    master.graph["Tphi"] = 0
 
 
 def populate_dual():
@@ -163,7 +192,7 @@ def populate_dual():
 
     dual = master.reverse()
     dual = nx.relabel_nodes(dual, dict(zip(dual.nodes, map(d, dual.nodes))))
-    dual.add_node(data.zero_star, type=d('atom'))
+    dual.add_node(data.zero_star, type=d('atom'))  # todo: fix all types
     dual.add_edges_from([(data.zero_star, d(t)) for t in terms])
     dual.add_edges_from([(d(p), d(data.target)) for p in pos])
 
@@ -297,7 +326,9 @@ def algorithm3(a, b):
 
 
 def algorithm4():
-    Q, A = OrderedSet(), master_constants()
+    # this is a stochastic algorithm to reduce the number of atoms.
+    # this method can be called anytime, and should reduce the number of atoms in a few calls
+    Q, A = OrderedSet(), [c for c in master_constants() if trace(c) is not None]
     while True:
         c = random.choice(tuple(A))
         A.remove(c)
@@ -307,8 +338,9 @@ def algorithm4():
         else:
             W = OrderedSet.intersection(*[dual_gla(d(phi)) for phi in S])
         PHI = OrderedSet(d(phi) for phi in master_gla(c))
-        while not same(W, trace(c)):
-            choose_from = W - trace(c)
+        tr = trace(c)
+        while (tr is not None) and (not same(W, tr)):
+            choose_from = W - tr
             xi = random.choice(tuple(choose_from))
             choose_from = PHI - dual_gu(xi)
             phi = und(random.choice(tuple(choose_from)))
@@ -320,6 +352,36 @@ def algorithm4():
 
     return removed
 
+
+def algorithm5(r_neg):
+    Q, S = OrderedSet(), r_neg
+    while S:
+        r = random.choice(tuple(S))
+        S.remove(r)
+        a, b = r
+        dis = dual_dis(d(b), d(a))
+        if not (dis & Q):
+            xi = random.choice(tuple(dis))
+            Q.append(xi)
+    removed = delete_atoms(dual_constants() - Q)
+
+    return removed
+
+
+def algorithm6(r_pin=None):
+    if r_pin is None:
+        r_pin = []
+    for phi in master.nodes:
+        H = master_constants() - master_u(phi)
+        if not H:
+            continue
+        T_phi = new_Tphi()
+        composition = OrderedSet.union(*[master_gla(x) for x in H])
+        master.add_node(T_phi, type="term", composition=composition)
+        dual.add_node(d(T_phi), type="constant", composition=d(composition))
+        for c in master_constants() & master_u(phi):
+            r_pin.append((c, T_phi))
+        return r_pin
 
 # -------------------------------------
 # DRAWING
@@ -355,25 +417,34 @@ def main():
     enforce_positive_constraints = algorithm2
     sparse_crossing = algorithm3
     atom_set_reduction = algorithm4
+    atom_set_reduction_for_the_dual_algebra = algorithm5
+    generation_of_pinning_terms_and_relations = algorithm6
 
     pos, neg = data.get_terms()
+    r_neg = [(data.target, n) for n in neg]
+    r_pos = [(data.target, p) for p in pos]
 
     populate_master()
     populate_dual()
     # draw()
     include_zeta_atoms()
     # draw()
-    r_neg = [(data.target, n) for n in neg]
+    r_pin = generation_of_pinning_terms_and_relations()  # fixme: this produces no effect somehow
+    # print(r_pin)
+    # draw()
     enforce_negative_constraints(r_neg)
     # draw()
-    r_pos = [(data.target, p) for p in pos]
     enforce_positive_constraints(r_pos)
     # draw()
     sparse_crossing(data.target, pos[0])
     sparse_crossing(data.target, pos[1])
-    draw()
-    atom_set_reduction()
-    draw()
+    # draw()
+    for i in range(3):
+        atom_set_reduction()
+        # draw()
+    for i in range(3):
+        atom_set_reduction_for_the_dual_algebra(r_neg)
+        # draw()
 
     print("master.edges:", pformat(list(master.edges)))
     print("dual.edges:", pformat(list(dual.edges)))
