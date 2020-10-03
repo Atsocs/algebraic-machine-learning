@@ -99,6 +99,15 @@ def less(a, b):
     return True
 
 
+def same(ordered_set_1, ordered_set_2):
+    if len(ordered_set_1) != len(ordered_set_2):
+        return False
+    for a in ordered_set_1:
+        if a not in ordered_set_2:
+            return False
+    return True
+
+
 def new_atom(name):
     return name
 
@@ -240,6 +249,56 @@ def algorithm2(r_pos):
     return phis_added
 
 
+def delete_atoms(atoms_ordered_set):
+    master.remove_nodes_from(atoms_ordered_set)
+    dual.remove_nodes_from(map(d, atoms_ordered_set))
+    return len(atoms_ordered_set)
+
+
+def algorithm3(a, b):
+    global master, dual
+    psi_added, eps_prime_added = 0, 0
+    A = master_gla(a) - master_gl(b)
+    U = OrderedSet()
+    for phi in A:
+        U, B, delta = OrderedSet(), master_gla(b), dual_atoms() - dual_gl(d(phi))
+        while True:
+            eps = random.choice(tuple(B))
+            delta_prime = delta & dual_gl(d(eps))
+            if (not delta) or (not same(delta, delta_prime)):
+                psi = new_phi()
+                master.add_node(psi, type="atom")
+                dual.add_node(d(psi), type=d("dual-of-atom"))
+                edges = [(psi, phi), (psi, eps)]
+                master.add_edges_from(edges)
+                dual.add_edges_from([(d(y), d(x)) for (x, y) in edges])
+                master, dual = nx.transitive_closure(master), nx.transitive_closure(dual)
+                psi_added += 1
+
+                delta = delta_prime
+                U.append(eps)
+            B.remove(eps)
+            if not delta:
+                break
+
+    for eps in U:
+        eps_prime = new_phi()
+        master.add_node(eps_prime, type="atom")
+        dual.add_node(d(eps_prime), type=d("dual-of-atom"))
+        master.add_edge(eps_prime, eps)
+        dual.add_edge(d(eps), d(eps_prime))
+        master, dual = nx.transitive_closure(master), nx.transitive_closure(dual)
+        eps_prime_added += 1
+
+    removed = delete_atoms(U | A)
+    return psi_added, eps_prime_added, removed
+
+
+# -------------------------------------
+# DRAWING
+# -------------------------------------
+
+
 def draw_graph(g):
     types = list((nx.get_node_attributes(g, "type")).values())
     mapping = {"atom": "b", "constant": "g", "term": "r",
@@ -271,6 +330,7 @@ def main():
 
     enforce_negative_constraints = algorithm1
     enforce_positive_constraints = algorithm2
+    sparse_crossing = algorithm3
 
     pos, neg = data.get_terms()
 
@@ -284,11 +344,17 @@ def main():
     # draw()
     r_pos = [(data.target, p) for p in pos]
     enforce_positive_constraints(r_pos)
+    # draw()
+    sparse_crossing(data.target, pos[0])
+    sparse_crossing(data.target, pos[1])
     draw()
+
     print("master.edges:", pformat(list(master.edges)))
     print("dual.edges:", pformat(list(dual.edges)))
-    print("R+ satisfied:", pformat([less(data.target, p) for p in pos]))
-    print("R- satisfied:", pformat([not less(data.target, n) for n in neg]))
+    print("Pos Tr.Constr.:", pformat([trace(p).issubset(trace(data.target)) for p in pos]))
+    print("Neg Tr.Constr.:", pformat([not trace(n).issubset(trace(data.target)) for n in neg]))
+    print("R+:", pformat([less(data.target, p) for p in pos]))
+    print("R-:", pformat([not less(data.target, n) for n in neg]))
 
 
 if __name__ == '__main__':
