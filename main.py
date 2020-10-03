@@ -174,7 +174,9 @@ def populate_dual():
 def include_zeta_atoms():
     global dual
     pos, neg = data.get_terms()
-    new_atoms = [new_zeta() for i in range(len(neg))]
+    new_atoms = []
+    for i in range(len(neg)):
+        new_atoms.append(new_zeta())
     dual.add_nodes_from([(zeta, {"type": d("atom")}) for zeta in new_atoms])
     dual.add_edges_from(zip(new_atoms, map(d, neg)))
     dual = nx.transitive_closure(dual)
@@ -294,6 +296,31 @@ def algorithm3(a, b):
     return psi_added, eps_prime_added, removed
 
 
+def algorithm4():
+    Q, A = OrderedSet(), master_constants()
+    while True:
+        c = random.choice(tuple(A))
+        A.remove(c)
+        S = master_gl(c) & Q
+        if not S:
+            W = dual_atoms()
+        else:
+            W = OrderedSet.intersection(*[dual_gla(d(phi)) for phi in S])
+        PHI = OrderedSet(d(phi) for phi in master_gla(c))
+        while not same(W, trace(c)):
+            choose_from = W - trace(c)
+            xi = random.choice(tuple(choose_from))
+            choose_from = PHI - dual_gu(xi)
+            phi = und(random.choice(tuple(choose_from)))
+            Q.append(phi)
+            W &= dual_gla(d(phi))
+        if not A:
+            break
+    removed = delete_atoms(master_atoms() - Q)
+
+    return removed
+
+
 # -------------------------------------
 # DRAWING
 # -------------------------------------
@@ -324,13 +351,10 @@ def draw():
 
 
 def main():
-    seed = 123456
-    numpy.random.seed(seed)
-    random.seed(seed)
-
     enforce_negative_constraints = algorithm1
     enforce_positive_constraints = algorithm2
     sparse_crossing = algorithm3
+    atom_set_reduction = algorithm4
 
     pos, neg = data.get_terms()
 
@@ -348,6 +372,8 @@ def main():
     sparse_crossing(data.target, pos[0])
     sparse_crossing(data.target, pos[1])
     draw()
+    atom_set_reduction()
+    draw()
 
     print("master.edges:", pformat(list(master.edges)))
     print("dual.edges:", pformat(list(dual.edges)))
@@ -356,8 +382,15 @@ def main():
     print("R+:", pformat([less(data.target, p) for p in pos]))
     print("R-:", pformat([not less(data.target, n) for n in neg]))
 
+    return len(master_atoms()), len(dual_atoms())
+
 
 if __name__ == '__main__':
+    seed = 123456
     master = nx.DiGraph()
     dual = nx.DiGraph()
-    main()
+
+    numpy.random.seed(seed)
+    random.seed(seed)
+
+    print(main())
