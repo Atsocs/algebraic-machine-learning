@@ -373,7 +373,7 @@ def algorithm6(r_pin=None):
         r_pin = []
     for phi in master.nodes:
         H = master_constants() - master_u(phi)
-        if not H:
+        if not H:  # todo: review this
             continue
         T_phi = new_Tphi()
         composition = OrderedSet.union(*[master_gla(x) for x in H])
@@ -388,28 +388,37 @@ def algorithm6(r_pin=None):
 # -------------------------------------
 
 
-def draw_graph(g):
+def draw_graph(g, node_size=900):
     types = list((nx.get_node_attributes(g, "type")).values())
     mapping = {"atom": "b", "constant": "g", "term": "r",
                d("atom"): "c", d("constant"): "m", d("dual-of-atom"): "y"}
     colors = [mapping[x] for x in types]
-    pos = nx.circular_layout(g)
+    # pos = nx.spring_layout(g)
+    pos = nx.drawing.nx_agraph.graphviz_layout(g, prog="dot")
     g = nx.transitive_reduction(g)
-    nx.draw(g, pos, node_size=1000, edgecolors=colors, node_color="white", linewidths=2.0)
+    nx.draw(g, pos, node_size=node_size, edgecolors=colors, node_color="white", linewidths=2.0)
     nx.draw_networkx_labels(g, pos, font_size=10, font_family='sans-serif')
 
 
-def draw():
-    fig = pyplot.figure(figsize=(10, 5))
-    ax1 = fig.add_subplot(1, 2, 1)
-    ax2 = fig.add_subplot(1, 2, 2)
-    ax1.title.set_text('Master')
-    ax2.title.set_text('Dual')
-    pyplot.subplot(ax1)
-    draw_graph(master)
-    pyplot.subplot(ax2)
-    draw_graph(dual)
-    pyplot.show()
+def draw(oneFigure=False):
+    if oneFigure:
+        fig = pyplot.figure(figsize=(8, 10))
+        ax1 = fig.add_subplot(2, 1, 1)
+        ax2 = fig.add_subplot(2, 1, 2)
+        ax1.title.set_text('Master')
+        ax2.title.set_text('Dual')
+        pyplot.subplot(ax1)
+        draw_graph(master, node_size=600)
+        pyplot.subplot(ax2)
+        draw_graph(dual, node_size=600)
+        pyplot.show()
+    else:
+        pyplot.suptitle("Master")
+        draw_graph(master)
+        pyplot.show()
+        pyplot.suptitle("Dual")
+        draw_graph(dual)
+        pyplot.show()
 
 
 def main():
@@ -430,7 +439,7 @@ def main():
     include_zeta_atoms()
     # draw()
     r_pin = generation_of_pinning_terms_and_relations()  # fixme: this produces no effect somehow
-    # print(r_pin)
+    print(r_pin)
     # draw()
     enforce_negative_constraints(r_neg)
     # draw()
@@ -445,6 +454,7 @@ def main():
     for i in range(3):
         atom_set_reduction_for_the_dual_algebra(r_neg)
         # draw()
+    draw(True)
 
     print("master.edges:", pformat(list(master.edges)))
     print("dual.edges:", pformat(list(dual.edges)))
