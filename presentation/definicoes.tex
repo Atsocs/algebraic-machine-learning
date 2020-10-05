@@ -1,0 +1,45 @@
+\section{Definições}
+\subsection{Elementos da Álgebra}
+\begin{frame}{\subsecname}
+    \uncover<1->{Álgebra: $M = \mathbf{T}(M)~\dot\cup~ \mathbf{C}(M)~\dot\cup~\mathbf{A}(M)$}
+\begin{itemize}
+    \item<2-> Termos $\mathbf{T}(M)$\\\vspace{2 mm}
+    \allTerms
+    \item<3-> Constantes $\mathbf{C}(M)$ \\\vspace{2 mm}
+    \allConstants
+    \item<4-> Átomos $\mathbf{A}(M)$
+    \begin{itemize}
+        \item<4-> Unidades de aprendizagem criadas pelo algoritmo
+        \item<5-> Representados em geral por letras gregas ($\phi$, $\epsilon$, $\zeta$,...)
+    \end{itemize}
+\end{itemize}
+\end{frame}
+\subsection{A operação combinar}
+\begin{frame}
+    \frametitle{\subsecname}
+    \uncover<1->{$\odot\colon M\times M\to M$}
+    \begin{itemize}
+        \item<2-> Axiomas
+        \begin{itemize}
+            \item<2-> Idempotência\\
+                \quad $a \odot a = a$
+            \item<3-> Comutatividade\\
+                \quad $a \odot b = b \odot a$
+            \item<4-> Associatividade\\
+                \quad $a \odot (b \odot c) = (a \odot b) \odot c$
+        \end{itemize}
+        \item<5-> Exemplo\\\vspace{2 mm}
+        {\renewcommand*{\TermScale}{0.4}
+    $
+        \vcenter{\hbox{\BBWW}}
+        =
+        \vcenter{\hbox{\constant{1/3/black}}}
+        \odot
+        \vcenter{\hbox{\constant{1/1/black}}}
+        \odot
+        \vcenter{\hbox{\constant{3/1/white}}}
+        \odot
+        \vcenter{\hbox{\constant{3/3/white}}}
+    $}
+    \end{itemize}
+\end{frame}

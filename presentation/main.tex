@@ -1,0 +1,60 @@
+\documentclass{beamer}
+\usetheme{Boadilla}
+% \setbeameroption{show notes}
+
+\usepackage[brazil]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{cfr-lm}
+
+\usepackage{lipsum}
+
+\input{draw/draw.tex}
+
+\title[AM Algébrico]{Aprendizagem de Máquina Algébrico}
+\subtitle{PO-240: Tópicos em Inteligência Artifical}
+\institute{ITA}
+\author[Caio, Fábio, Jhonnie]{Caio Augusto, Fábio Alan, Jhonnie Batista}
+\date{\today}
+
+\begin{document}
+
+\setbeamercovered{transparent}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Sumário}
+    \setcounter{tocdepth}{2}
+    \tableofcontents
+\end{frame}
+
+\input{intro.tex}
+
+\input{definicoes.tex}
+
+\section{O Algoritmo}
+\input{master.tex}
+\input{dual.tex}
+\subsection{Modelos Atomizados}
+\begin{frame}{\secname : \subsecname}
+    \lipsum[2]
+\end{frame}
+\subsection{Restrições de traço}
+\begin{frame}{\secname : \subsecname}
+    \# TODO
+\end{frame}
+\subsection{Cruzamento}
+\begin{frame}{\secname : \subsecname}
+    \# TODO
+\end{frame}
+\subsection{Redução de átomos}
+\begin{frame}{\secname : \subsecname}
+    \# TODO
+\end{frame}
+\subsection{Treinamento em lote}
+\begin{frame}{\secname : \subsecname}
+    \lipsum[3]
+\end{frame}
+
+\end{document}
