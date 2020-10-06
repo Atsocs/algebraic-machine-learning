@@ -13,7 +13,27 @@
 \title[AM Algébrico]{Aprendizagem de Máquina Algébrico}
 \subtitle{PO-240: Tópicos em Inteligência Artifical}
 \institute{ITA}
-\author[Caio, Fábio, Jhonnie]{Caio Augusto, Fábio Alan, Jhonnie Batista}
+\author[Caio \& Fábio \& Johnnie]
+{%
+  \texorpdfstring{
+    \begin{columns}%[onlytextwidth]
+      \column{.30\linewidth}
+      \centering
+      Caio Costa\\
+      \href{mailto:caio.costa@ga.ita.br}{caio.costa@ga.ita.br}
+      \column{.30\linewidth}
+      \centering
+      Fábio Alan\\
+      \href{mailto:fabio.alan@ga.ita.br}{fabio.alan@ga.ita.br}
+      \column{.30\linewidth}
+      \centering
+      Johnnie Bastista\\
+      \href{mailto:johnnie@ita.br}{johnnie@ita.br}
+    \end{columns}
+  }
+  {Caio \& Fábio \& Johnnie}
+}
+
 \date{\today}
 
 \begin{document}
@@ -37,24 +57,78 @@
 \input{master.tex}
 \input{dual.tex}
 \subsection{Modelos Atomizados}
-\begin{frame}{\secname : \subsecname}
-    \lipsum[2]
+\begin{frame}{\subsecname}
+    \begin{itemize}
+        \item Definições: \\
+            \uncover<1-> {\[a < b \iff \mathbf{GL^a}(a) \subset \mathbf{GL^a}(b)\]}\\
+            \uncover<2->{\[\mathbf{GL^a}(a) = \{\phi\in\mathbf{A}(M)\colon\phi\to a\}\]}
+        \item<3-> Objetivo: \\
+            \[\forall T_i^{+} \in R^{+}\colon v < T_i^{+} \iff \mathbf{GL^a}(v) \subset \mathbf{GL^a}(T_i^{+})\]
+            \[\forall T_i^{-} \in R^{-}\colon v \not< T_i^{-} \iff \mathbf{GL^a}(v) \subset \mathbf{GL^a}(T_i^{-})\]
+    \end{itemize}
 \end{frame}
-\subsection{Restrições de traço}
-\begin{frame}{\secname : \subsecname}
-    \# TODO
+\subsection{Traço e Restrições}
+\begin{frame}{Traço}
+\begin{itemize}
+    \item<1-> Definição de traço:
+        \[\mathbf{Tr}(x) \equiv \cap_{\phi \in \mathbf{GL^a}(x)} \mathbf{GL^{a}}([\phi]) \]
+    \item<2-> Linearidade:
+        \[\mathbf{Tr}(a \odot b) = \mathbf{Tr}(a) \cap \mathbf{Tr}(b)\]
+    \item<3-> Restrição:
+        \[ a < b \implies \mathbf{Tr}(b) \subset \mathbf{Tr}(a)\]
+\end{itemize}
+\end{frame}
+\begin{frame}{Restrições de Traço}
+\[ a < b \implies \mathbf{Tr}(b) \subset \mathbf{Tr}(a)\]
+\begin{itemize}
+    \item<1-> $\mathrm{for}~v < T_i^+~\mathrm{enforce}~
+    \mathbf{Tr}(T_i^+) \subset \mathbf{Tr}(v) $
+    \item<2-> $\mathrm{for}~v \not< T_i^-~\mathrm{enforce}~
+    \mathbf{Tr}(T_i^-) \not\subset \mathbf{Tr}(v) $
+\end{itemize}
+\end{frame}
+\begin{frame}{Traço e Restrições}
+\centering
+    \input{zeta.tex}
+\end{frame}
+\begin{frame}{Traço e Restrições}
+\centering
+    \input{negative_trace.tex}
 \end{frame}
 \subsection{Cruzamento}
-\begin{frame}{\secname : \subsecname}
-    \# TODO
+\begin{frame}{\subsecname}
+\centering
+    \input{cruzamento}
+\end{frame}
+\begin{frame}{\subsecname}
+\centering
+    \input{cruzamento_pt2}
 \end{frame}
 \subsection{Redução de átomos}
-\begin{frame}{\secname : \subsecname}
-    \# TODO
+\begin{frame}{\subsecname}
+    Como no processo podem ser criados muitos átomos, existem rotinas que reduzem o número de átomos.
+    \begin{itemize}
+        \item As rotinas de redução são:
+        \begin{itemize}
+            \item Invariantes em relação ao traço das constantes.
+            \item Estocásticas.
+        \end{itemize}
+        \item Há duas rotinas distintas:
+        \begin{itemize}
+            \item redução de $M$
+            \item redução de $M^\star$
+        \end{itemize}
+    \end{itemize}
 \end{frame}
 \subsection{Treinamento em lote}
-\begin{frame}{\secname : \subsecname}
-    \lipsum[3]
+\begin{frame}{\subsecname}
+    \begin{itemize}
+        \item Termos e relações de fixação
+        \item Economia de memória
+    \end{itemize}
 \end{frame}
-
+\section*{Agradecimentos}
+\begin{frame}{Obrigado por sua atenção!}
+    \titlepage
+\end{frame}
 \end{document}

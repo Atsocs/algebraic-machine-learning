@@ -1,8 +1,3 @@
-\subsection{\texorpdfstring{A Álgebra Dual $M^\star$}{A Álgebra Principal M*}}
-\newcommand*{\dualcolor}{blue}
-\newcommand*{\dual}[1]{{\color{\dualcolor}[}#1{\color{\dualcolor}]}}
-\begin{frame}{\subsecname}
-\centering
 \scalebox{0.5}{
 \begin{tikzpicture}[
 every node/.style = {
@@ -15,7 +10,7 @@ every node/.style = {
 },
 ]]
 %
-\node[shape = circle, draw] (zero) at (0,0) {\zeroslash};
+\node[shape = circle, draw] (zero) at (1.1,0) {\zeroslash};
 \coordinate[at=(zero.north)] (azero);
 \coordinate[at=(zero.west)] (lzero);
 \newcommand*{\sep}{1.1}
@@ -49,8 +44,27 @@ every node/.style = {
 \foreach \x in {5, 6, 3, 8}{\draw[] (ac\x) -- (bT4);}
 \foreach \x in {5, 6, 7, 4}{\draw[] (ac\x) -- (bT5);}
 %
+\renewcommand*{\sep}{1.1}
+\node[shape = circle, draw] (phi1) at (-4.5*1.1*0.5 -3*\sep*0.5, 0) {$\phi_1$};
+\coordinate[at=(phi1.north)] (aphi1);
+\node[shape = circle, draw] (epsilon2) at (-1*\sep, 0) {$\epsilon_2$};
+\coordinate[at=(epsilon2.north)] (aepsilon2);
+\node[shape = circle, draw] (epsilon3) at (0*\sep, 0) {$\epsilon_3$};
+\coordinate[at=(epsilon3.north)] (aepsilon3);
+\draw (bc1) -- (aphi1);
+\draw (bv) -- (aphi1);
+\draw (bc3) -- (aepsilon2);
+\draw (bc4) -- (aepsilon3);
+%
+%
 \end{tikzpicture}
 \quad
+%
+%
+%
+%
+%
+%
 \begin{tikzpicture}[
 every node/.style = {
     % shape=circle,
@@ -65,7 +79,7 @@ dual/.style = {
 },
 ]]
 %
-\node[shape = circle, draw] (zero) at (0,0) {\dual{\zeroslash}};
+\node[shape = circle, draw] (zero) at (1.1,0) {\dual{\zeroslash}};
 \coordinate[at=(zero.south)] (bzero);
 \newcommand*{\sep}{1.1}
 \foreach \x in {1, 2, 3, 4, 5, 6, 7, 8}{
@@ -101,69 +115,33 @@ dual/.style = {
 \foreach \x in {5, 6, 3, 8}{\draw[] (bc\x) -- (aT4);}
 \foreach \x in {5, 6, 7, 4}{\draw[] (bc\x) -- (aT5);}
 %
-\end{tikzpicture}
-}
-\end{frame}
-%
-\begin{frame}{\subsecname}
-\centering   
-\begin{tikzpicture}[
-every node/.style = {
-    % shape=circle,
-    % draw,
-    align=center,
-    minimum size=22pt,
-    inner sep=0pt,
-    outer sep=0pt,
-},
-dual/.style = {
-    color = \dualcolor,
-},
-]]
-%
-\node[shape = circle, draw] (zero) at (0,0) {\dual{\zeroslash}};
-\coordinate[at=(zero.south)] (bzero);
-\newcommand*{\sep}{1.1}
-\foreach \x in {1, 2, 3, 4, 5, 6, 7, 8}{
-  \node[dual] (c\x) at (\x*\sep - 4*\sep, -2) {\const{\x}};
-  \coordinate[below=0.1cm,at=(c\x.south)] (bc\x);
-  \coordinate[above=0.1cm,at=(c\x.north)] (ac\x);
-}
-\node[shape = circle, draw] (v) at (-4.5*\sep,-2) {\dual{$v$}};
-\coordinate[above=0.1cm,at=(v.north)] (av);
-\coordinate[below=0.1cm,at=(v.south)] (bv);
-\foreach \x in {1, 2, 3, 4, 5, 6, 7, 8}{
-  \draw[] (bzero) -- (ac\x);
-}
-\draw[] (bzero) -- (av);
-%
-\renewcommand*{\TermScale}{0.6}
-\renewcommand*{\sep}{1.4}
-\foreach \x in {1, 2}{
-  \node[dual] (T\x) at (\x*\sep - 2.5*\sep - 0.1, -5) {\Term{\x}};
-  \coordinate[above=0.1cm,at=(T\x.north)] (aT\x);
-  \coordinate[below=0.1cm,at=(T\x.south)] (bT\x);
-}
-\draw[very thick] (-0.5*\sep + 0.5*\sep, -5 + \TermScale) -- (-0.5*\sep + 0.5*\sep, -5 - \TermScale);
-\foreach \x in {3, 4, 5}{
-  \node[dual] (T\x) at (\x*\sep - 2.5*\sep + 0.1, -5) {\Term{\x}};
-  \coordinate[above=0.1cm,at=(T\x.north)] (aT\x);
-  \coordinate[below=0.1cm,at=(T\x.south)] (bT\x);
-}
-%
-\foreach \x in {1, 2, 7, 8}{\draw[] (bc\x) -- (aT1);}
-\foreach \x in {5, 6, 3, 4}{\draw[] (bc\x) -- (aT2);}
-\foreach \x in {5, 2, 7, 4}{\draw[] (bc\x) -- (aT3);}
-\foreach \x in {5, 6, 3, 8}{\draw[] (bc\x) -- (aT4);}
-\foreach \x in {5, 6, 7, 4}{\draw[] (bc\x) -- (aT5);}
-%
-\node[uncover={<3->}, shape=circle, draw] (zero_star) at (0, -7) {\zeroslash$^{\star}$};
+\node[shape=circle, draw] (zero_star) at (-1.5*\sep - 0.1, -7) {\zeroslash$^{\star}$};
 \coordinate[at=(zero_star.north)] (azero_star);
 \foreach \x in {1, 2, 3, 4, 5}{
-  \draw[uncover={<3->}] (azero_star) -- (bT\x);
+  \draw[] (azero_star) -- (bT\x);
 }
 \foreach \x in {1, 2}{
-    \draw[uncover={<2->}] (bv) -- (aT\x);
+    \draw[] (bv) -- (aT\x);
 }
+\foreach \x in {1, 2, 3}{
+    \node[shape = circle, draw] (zeta\x) at (\x*\sep - 0.5*\sep+ 0.1, -7) {$\zeta_\x$};
+    \coordinate[above=0.1cm,at=(zeta\x.north)] (azeta\x);
+}
+\draw[] (azeta1) -- (bT3);
+\draw[] (azeta2) -- (bT4);
+\draw[] (azeta3) -- (bT5);
+
+\renewcommand*{\sep}{1.1}
+\node[shape = circle, draw] (phi1) at (-4.5*1.1*0.5 -3*\sep*0.5, 0) {\dual{$\phi_1$}};
+\coordinate[at=(phi1.south)] (bphi1);
+\node[shape = circle, draw] (epsilon2) at (-1*\sep, 0) {$\epsilon_2$};
+\coordinate[at=(epsilon2.south)] (bepsilon2);
+\node[shape = circle, draw] (epsilon3) at (0*\sep, 0) {$\epsilon_3$};
+\coordinate[at=(epsilon3.south)] (bepsilon3);
+\draw (ac1) -- (bphi1);
+\draw (av) -- (bphi1);
+\draw (ac3) -- (bepsilon2);
+\draw (ac4) -- (bepsilon3);
+
 \end{tikzpicture}
-\end{frame}
+}
