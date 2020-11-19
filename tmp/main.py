@@ -3,7 +3,7 @@ from pprint import pformat
 
 from ordered_set import OrderedSet
 import networkx as nx
-import data
+from tmp import data
 import numpy
 from matplotlib import pyplot
 
