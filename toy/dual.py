@@ -56,7 +56,23 @@ class Dual:
     glc = Master.__dict__['glc']
     gu = Master.__dict__['gu']
 
+    def remove_dual_of_atom(self, dual_of_atom):
+        self.dual_of_atoms.remove(dual_of_atom)
+        self.graph.remove_node(dual_of_atom)
+        if self.draw_flag:
+            self.draw_and_save()
+        return True
+
+    def remove_dual_of_atoms_from(self, dual_of_atom_list):
+        removed = 0
+        for dual_of_atom in dual_of_atom_list:
+            removed += self.remove_dual_of_atom(dual_of_atom)
+        return removed
+
     def __init__(self, master):
+        self.img_dir = "img/dual/"
+        self.draw_flag = False
+        self.fig_counter = 0
         self.drawing_mapping = {"atom": "c", "constant": "m", "dual-of-atom": "y"}
         self.constants = []  # duals of master's constants or terms
         self.dual_of_atoms = []  # duals of master's atoms
@@ -82,3 +98,5 @@ class Dual:
             self.add_edge(d(pe), d(data.target))
 
         self.close_graph()
+
+    draw_and_save = Master.__dict__['draw_and_save']

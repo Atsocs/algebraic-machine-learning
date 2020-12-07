@@ -94,3 +94,66 @@ def test_trace_constraints(master, dual):
     negative_trace_constraints = [not trace(master, dual, ne).issubset(trace(master, dual, target)) for ne in
                                   negative_examples]
     return all(positive_trace_constraints + negative_trace_constraints)
+
+
+def same_set(ordered_set_1, ordered_set_2):
+    if len(ordered_set_1) != len(ordered_set_2):
+        return False
+    for a in ordered_set_1:
+        if a not in ordered_set_2:
+            return False
+    return True
+
+
+def sparse_crossing(master, dual, a, b):
+    psi_counter_before = master.psi_counter
+    epsilon_prime_counter_before = master.epsilon_prime_counter
+
+    A = master.gla(a) - master.gl(b)
+    U = OrderedSet()
+    for phi in A:
+        U, B, delta = OrderedSet(), master.gla(b), dual.atoms - dual.gl(d(phi))
+        while True:
+            eps = random.choice(tuple(B))
+            delta_prime = delta & dual.gl(d(eps))
+            if (not delta) or (not same_set(delta, delta_prime)):
+                # add new atom psi to M and edges psi -> phi and psi -> epsilon #todo: maybe change epislon to phi too?
+                master.psi_counter += 1
+                psi = master.add_atom(f"psi_{master.psi_counter}",
+                                      r"$\psi_{" + f'{master.psi_counter}' + "}$")
+                dual.add_dual_of_atom(d(psi), dlatex(master.graph.nodes[psi]))
+                master.add_edge(psi, phi)
+                master.add_edge(psi, eps)
+                dual.add_edge(d(phi), d(psi))
+                dual.add_edge(d(eps), d(psi))
+
+                master.close_graph()
+                dual.close_graph()
+
+                delta = delta_prime
+                U.append(eps)
+            B.remove(eps)
+            if not delta:
+                break
+
+    for eps in U:
+        # create new atom eps_prime and edge eps_prime -> eps
+        master.epsilon_prime_counter += 1
+        eps_prime = master.add_atom(f"eps_prime_{master.epsilon_prime_counter}",
+                                    r"$\varepsilon_{" + f'{master.epsilon_prime_counter}' + "}' $")
+        dual.add_dual_of_atom(d(eps_prime), dlatex(master.graph.nodes[eps_prime]))
+        master.add_edge(eps_prime, eps)
+        dual.add_edge(d(eps), d(eps_prime))
+
+        master.close_graph()
+        dual.close_graph()
+
+    to_remove = list(U | A)
+    master.remove_atoms_from(to_remove)
+    dual.remove_dual_of_atoms_from(map(d, to_remove))
+
+    psi_added = master.psi_counter - psi_counter_before
+    eps_prime_added = master.epsilon_prime_counter - epsilon_prime_counter_before
+    atoms_removed = len(to_remove)
+
+    return psi_added, eps_prime_added, atoms_removed

@@ -1,8 +1,9 @@
 import networkx as nx
+from matplotlib import pyplot
 from ordered_set import OrderedSet
 
-from toy import data
 from toy.LaTeX import node_code
+from toy import data
 
 
 class Master:
@@ -17,6 +18,8 @@ class Master:
             latex = node
         self.graph.add_node(node, type=kind, latex=latex)
         node_list.append(node)
+        if self.draw_flag:
+            self.draw_and_save()
         return node
 
     def add_constant(self, constant, latex):
@@ -31,7 +34,23 @@ class Master:
     def add_edge(self, a, b):
         assert (a in self.graph.nodes)
         assert (b in self.graph.nodes)
-        return self.graph.add_edge(a, b)
+        ret = self.graph.add_edge(a, b)
+        if self.draw_flag:
+            self.draw_and_save()
+        return ret
+
+    def remove_atom(self, atom):
+        self.atoms.remove(atom)
+        self.graph.remove_node(atom)
+        if self.draw_flag:
+            self.draw_and_save()
+        return True
+
+    def remove_atoms_from(self, atom_list):
+        removed = 0
+        for atom in atom_list:
+            removed += self.remove_atom(atom)
+        return removed
 
     def close_graph(self):
         self.graph = nx.transitive_closure(self.graph)
@@ -54,6 +73,7 @@ class Master:
         return OrderedSet(self.graph[x])
 
     def __init__(self):
+        self.img_dir = "img/master/"
         self.drawing_mapping = {"atom": "r", "constant": "g", "term": "b"}
         self.relations = data.relations
         self.terms = []
@@ -62,6 +82,11 @@ class Master:
         self.kinds = {"atom": self.atoms, "constant": self.constants, "term": self.terms}
         self.phi_counter = 0
         self.epsilon_counter = 0
+        self.psi_counter = 0
+        self.epsilon_prime_counter = 0
+        self.draw_flag = False
+
+        self.fig_counter = 0
 
         self.graph = nx.DiGraph()
         self.add_atom(data.zero, node_code.master_atom(data.zero))
@@ -80,6 +105,12 @@ class Master:
                 self.add_edge(constant, t)
 
         self.close_graph()
+
+    def draw_and_save(self):
+        pyplot.clf()
+        self.draw()
+        pyplot.savefig(self.img_dir + str(self.fig_counter).zfill(4) + ".png")
+        self.fig_counter += 1
 
     def draw(self, avoid_clutter=True, node_size=900, pos=None):
         types = list((nx.get_node_attributes(self.graph, "type")).values())
