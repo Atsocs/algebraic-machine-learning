@@ -2,6 +2,7 @@ import random
 
 from ordered_set import OrderedSet
 from toy.dual import d, und, dlatex
+from toy.data import positive_examples, negative_examples, target
 
 
 def trace(master, dual, x):
@@ -58,3 +59,38 @@ def enforce_negative_trace_constraints(master, dual, negative_relations):
     phis_created = master.phi_counter - phi_counter_before
     zetas_created = dual.zeta_counter - zeta_counter_before
     return phis_created, zetas_created
+
+
+def enforce_positive_trace_constraints(master, dual, positive_relations):
+    epsilons_before = master.epsilon_counter
+    for (D, E) in positive_relations:
+        while not trace(master, dual, E).issubset(trace(master, dual, D)):
+            choose_from = trace(master, dual, E) - trace(master, dual, D)
+            zeta = random.choice(tuple(choose_from))
+            gamma = OrderedSet(c for c in master.glc(E) if zeta not in dual.gl(d(c)))
+            if not gamma:
+                dual.add_edge(zeta, d(D))
+                dual.close_graph()
+            else:
+                c = random.choice(tuple(gamma))
+
+                # add new atom epsilon to M and edge epsilon -> c #todo: maybe change epislon to phi too?
+                master.epsilon_counter += 1
+                epsilon = master.add_atom(f"eps_{master.epsilon_counter}",
+                                          r"$\varepsilon_{" + f'{master.epsilon_counter}' + "}$")
+                dual.add_dual_of_atom(d(epsilon), dlatex(master.graph.nodes[epsilon]))
+                master.add_edge(epsilon, c)
+                dual.add_edge(d(c), d(epsilon))
+
+                master.close_graph()
+                dual.close_graph()
+    epsilons_created = master.epsilon_counter - epsilons_before
+    return epsilons_created
+
+
+def test_trace_constraints(master, dual):
+    positive_trace_constraints = [trace(master, dual, pe).issubset(trace(master, dual, target)) for pe in
+                                  positive_examples]
+    negative_trace_constraints = [not trace(master, dual, ne).issubset(trace(master, dual, target)) for ne in
+                                  negative_examples]
+    return all(positive_trace_constraints + negative_trace_constraints)

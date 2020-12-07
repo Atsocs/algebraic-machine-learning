@@ -30,20 +30,13 @@ def dtype(node_attr):
 class Dual:
     """Dual Algebra and Graph"""
 
-    def add_node(self, kind, node, latex):
-        assert (node not in self.graph.nodes)
-        kinds = {"atom": self.atoms, "constant": self.constants, "dual-of-atom": self.dual_of_atoms}
-        assert (kind in kinds)
-        node_list = kinds[kind]
-
-        if latex is None:
-            latex = node
-        self.graph.add_node(node, type=kind, latex=latex)
-        node_list.append(node)
-        return node
+    add_node = Master.__dict__['add_node']
 
     def add_dual_of_atom(self, dual_of_atom, latex):
         return self.add_node("dual-of-atom", dual_of_atom, latex)
+
+    def add_constant(self, constant, latex):
+        return self.add_node("constant", constant, latex)
 
     add_atom = Master.__dict__['add_atom']
     add_edge = Master.__dict__['add_edge']
@@ -65,9 +58,10 @@ class Dual:
 
     def __init__(self, master):
         self.drawing_mapping = {"atom": "c", "constant": "m", "dual-of-atom": "y"}
-        self.constants = []  # duals of master's constants or dual_of_atoms
+        self.constants = []  # duals of master's constants or terms
         self.dual_of_atoms = []  # duals of master's atoms
         self.atoms = []  # not duals of any element in the master
+        self.kinds = {"atom": self.atoms, "constant": self.constants, "dual-of-atom": self.dual_of_atoms}
 
         self.constants += [d(c) for c in master.constants]
         self.constants += [d(t) for t in master.terms]

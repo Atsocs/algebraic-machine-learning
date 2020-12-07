@@ -3,6 +3,7 @@ from matplotlib import pyplot
 import toy.master
 import toy.dual
 from toy import algorithm
+from toy.algorithm import trace
 
 master = toy.master.Master()
 dual = toy.dual.Dual(master)
@@ -12,8 +13,15 @@ dual.reverted_negative_relations()
 # TODO: check for consistency after dual.reverted_negative_relations()
 
 negative_relations = [(toy.data.target, ne) for ne in toy.data.negative_examples]
+positive_relations = [(toy.data.target, pe) for pe in toy.data.positive_examples]
 
 algorithm.enforce_negative_trace_constraints(master, dual, negative_relations)
+algorithm.enforce_positive_trace_constraints(master, dual, positive_relations)
+
+if algorithm.test_trace_constraints(master, dual):
+    print("Trace constraints fufilled")
+else:
+    print("ERROR: Trace constraints NOT fufilled")
 
 
 def draw(save_name=None):

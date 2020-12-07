@@ -10,9 +10,8 @@ class Master:
 
     def add_node(self, kind, node, latex):
         assert (node not in self.graph.nodes)
-        kinds = {"atom": self.atoms, "constant": self.constants, "term": self.terms}
-        assert (kind in kinds)
-        node_list = kinds[kind]
+        assert (kind in self.kinds)
+        node_list = self.kinds[kind]
 
         if latex is None:
             latex = node
@@ -60,7 +59,9 @@ class Master:
         self.terms = []
         self.constants = []
         self.atoms = []
+        self.kinds = {"atom": self.atoms, "constant": self.constants, "term": self.terms}
         self.phi_counter = 0
+        self.epsilon_counter = 0
 
         self.graph = nx.DiGraph()
         self.add_atom(data.zero, node_code.master_atom(data.zero))
