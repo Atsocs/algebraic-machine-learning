@@ -70,7 +70,7 @@ class Dual:
         for (i, ne) in enumerate(data.negative_examples):
             zeta = self.add_atom(f"zeta_{i}", r"$\zeta_{" + f'{i}' + "}$")
             self.add_edge(zeta, d(ne))
-            print(ne)
+        self.close_graph()
 
     def __init__(self, master):
         self.constants = []  # duals of master's constants or dual_of_atoms
