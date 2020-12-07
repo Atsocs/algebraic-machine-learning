@@ -22,7 +22,7 @@ class Dual:
     """Dual Algebra and Graph"""
 
     def add_node(self, kind, node, latex):
-        assert (node not in self.graph.nodes)x''
+        assert (node not in self.graph.nodes)
         kinds = {"atom": self.atoms, "constant": self.constants, "dual-of-atom": self.dual_of_atoms}
         assert (kind in kinds)
         node_list = kinds[kind]
@@ -66,6 +66,12 @@ class Dual:
         flipped_pos = {node: (x, -y) for (node, (x, y)) in pos.items()}
         return flipped_pos
 
+    def reverted_negative_relations(self):
+        for (i, ne) in enumerate(data.negative_examples):
+            zeta = self.add_atom(f"zeta_{i}", r"$\zeta_{" + f'{i}' + "}$")
+            self.add_edge(zeta, d(ne))
+            print(ne)
+
     def __init__(self, master):
         self.constants = []  # duals of master's constants or dual_of_atoms
         self.dual_of_atoms = []  # duals of master's atoms
@@ -89,9 +95,3 @@ class Dual:
             self.add_edge(d(pe), d(data.target))
 
         self.close_graph()
-
-    def reverted_negative_relations(self):
-        for (i, ne) in enumerate(data.negative_examples):
-            zeta = self.add_atom(f"zeta_{i}", f"$\zeta_{i}$")
-            self.add_edge(zeta, d(ne))
-            print(ne)
