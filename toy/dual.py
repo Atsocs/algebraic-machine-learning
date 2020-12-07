@@ -9,10 +9,19 @@ def d(x):
     return '[' + str(x) + ']'
 
 
-def dtype(x):
-    if x == "atom":
+def und(x):
+    return x[1:-1]
+
+
+def dlatex(node_attr):
+    return '$' + d('{' + node_attr['latex'][1: -1] + '}') + '$'
+
+
+def dtype(node_attr):
+    node_type = node_attr['type']
+    if node_type == "atom":
         return "dual-of-atom"
-    elif x == "term" or x == "constant":
+    elif node_type == "term" or node_type == "constant":
         return "constant"
     else:
         assert False
@@ -33,46 +42,29 @@ class Dual:
         node_list.append(node)
         return node
 
+    def add_dual_of_atom(self, dual_of_atom, latex):
+        return self.add_node("dual-of-atom", dual_of_atom, latex)
+
     add_atom = Master.__dict__['add_atom']
     add_edge = Master.__dict__['add_edge']
     close_graph = Master.__dict__['close_graph']
-
-    def draw(self, avoid_clutter=True, node_size=900, pos=None):
-        types = list((nx.get_node_attributes(self.graph, "type")).values())
-        mapping = {"atom": "c", "constant": "m", "dual-of-atom": "y"}
-        colors = [mapping[x] for x in types]
-        if pos is None:
-            pos = self.get_pos()
-        labels_items = list((nx.get_node_attributes(self.graph, "latex")).values())
-        assert len(pos) == len(labels_items)
-        labels = dict(zip(pos.keys(), labels_items))
-        if avoid_clutter:
-            g = nx.transitive_reduction(self.graph)
-        else:
-            g = self.graph
-        nx.draw(g, pos, node_size=node_size, edgecolors=colors, node_color="white", linewidths=1.0)
-        nx.draw_networkx_labels(g, pos, labels=labels, font_size=10, font_family='sans-serif')
-
-    def get_pos(self):
-        pos = nx.drawing.nx_agraph.graphviz_layout(self.graph, prog="dot")
-        y_values = sorted(list(set(y for (x, y) in pos.values())))
-        new_pos = []
-        for level in range(len(y_values)):
-            pairs = [(n, (x, y)) for (n, (x, y)) in pos.items() if y == y_values[level]]
-            n, p = zip(*pairs)
-            n, p = sorted(n), sorted(p)
-            new_pos += list(zip(n, p))
-        pos = dict(new_pos)
-        flipped_pos = {node: (x, -y) for (node, (x, y)) in pos.items()}
-        return flipped_pos
+    draw = Master.__dict__['draw']
+    get_pos = Master.__dict__['get_pos']
 
     def reverted_negative_relations(self):
-        for (i, ne) in enumerate(data.negative_examples):
-            zeta = self.add_atom(f"zeta_{i}", r"$\zeta_{" + f'{i}' + "}$")
+        for ne in data.negative_examples:
+            self.zeta_counter += 1
+            zeta = self.add_atom(f"zeta_{self.zeta_counter}", r"$\zeta_{" + f'{self.zeta_counter}' + "}$")
             self.add_edge(zeta, d(ne))
         self.close_graph()
 
+    gl = Master.__dict__['gl']
+    gla = Master.__dict__['gla']
+    glc = Master.__dict__['glc']
+    gu = Master.__dict__['gu']
+
     def __init__(self, master):
+        self.drawing_mapping = {"atom": "c", "constant": "m", "dual-of-atom": "y"}
         self.constants = []  # duals of master's constants or dual_of_atoms
         self.dual_of_atoms = []  # duals of master's atoms
         self.atoms = []  # not duals of any element in the master
@@ -80,12 +72,13 @@ class Dual:
         self.constants += [d(c) for c in master.constants]
         self.constants += [d(t) for t in master.terms]
         self.dual_of_atoms += [d(a) for a in master.atoms]
+        self.zeta_counter = 0
 
         g = master.graph.reverse()
         g = nx.relabel_nodes(g, dict(zip(g.nodes, map(d, g.nodes))))
         for n in g.nodes:
-            g.nodes[n]['type'] = dtype(g.nodes[n]['type'])
-            g.nodes[n]['latex'] = '$' + d('{' + g.nodes[n]['latex'][1: -1] + '}') + '$'
+            g.nodes[n]['type'] = dtype(g.nodes[n])
+            g.nodes[n]['latex'] = dlatex(g.nodes[n])
         self.graph = g
 
         self.add_atom(data.zero_star, node_code.dual_atom(data.zero_star))

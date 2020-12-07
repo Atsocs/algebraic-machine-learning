@@ -1,4 +1,6 @@
 import networkx as nx
+from ordered_set import OrderedSet
+
 from toy import data
 from toy.LaTeX import node_code
 
@@ -36,11 +38,29 @@ class Master:
         self.graph = nx.transitive_closure(self.graph)
         return self.graph
 
+    def gl(self, x):
+        in_edges = self.graph.in_edges(x)
+        if not in_edges:
+            return OrderedSet({x})
+        in_neighs = list(zip(*in_edges))[0]
+        return OrderedSet(in_neighs) | {x}
+
+    def gla(self, x):
+        return self.gl(x) & self.atoms
+
+    def glc(self, x):
+        return self.gl(x) & self.constants
+
+    def gu(self, x):
+        return OrderedSet(self.graph[x])
+
     def __init__(self):
+        self.drawing_mapping = {"atom": "r", "constant": "g", "term": "b"}
         self.relations = data.relations
         self.terms = []
         self.constants = []
         self.atoms = []
+        self.phi_counter = 0
 
         self.graph = nx.DiGraph()
         self.add_atom(data.zero, node_code.master_atom(data.zero))
@@ -62,8 +82,7 @@ class Master:
 
     def draw(self, avoid_clutter=True, node_size=900, pos=None):
         types = list((nx.get_node_attributes(self.graph, "type")).values())
-        mapping = {"atom": "r", "constant": "g", "term": "b"}
-        colors = [mapping[x] for x in types]
+        colors = [self.drawing_mapping[x] for x in types]
         if pos is None:
             pos = self.get_pos()
         labels_items = list((nx.get_node_attributes(self.graph, "latex")).values())
@@ -77,12 +96,6 @@ class Master:
         nx.draw_networkx_labels(g, pos, labels=labels, font_size=10, font_family='sans-serif')
 
     def get_pos(self):
-        # pos = nx.spring_layout(g)
         pos = nx.drawing.nx_agraph.graphviz_layout(self.graph, prog="dot")
-        atoms_pos = sorted([p for (n, p) in pos.items() if n in self.atoms])
-        constants_pos = sorted([p for (n, p) in pos.items() if n in self.constants])
-        terms_pos = sorted([p for (n, p) in pos.items() if n in self.terms])
-        pos = dict(zip(self.atoms + self.constants + self.terms,
-                       atoms_pos + constants_pos + terms_pos))
         flipped_pos = {node: (x, -y) for (node, (x, y)) in pos.items()}
         return flipped_pos
