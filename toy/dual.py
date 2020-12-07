@@ -22,6 +22,7 @@ class Dual:
     """Dual Algebra and Graph"""
 
     def add_node(self, kind, node, latex):
+        assert (node not in self.graph.nodes)x''
         kinds = {"atom": self.atoms, "constant": self.constants, "dual-of-atom": self.dual_of_atoms}
         assert (kind in kinds)
         node_list = kinds[kind]
@@ -30,6 +31,7 @@ class Dual:
             latex = node
         self.graph.add_node(node, type=kind, latex=latex)
         node_list.append(node)
+        return node
 
     add_atom = Master.__dict__['add_atom']
     add_edge = Master.__dict__['add_edge']
@@ -87,3 +89,9 @@ class Dual:
             self.add_edge(d(pe), d(data.target))
 
         self.close_graph()
+
+    def reverted_negative_relations(self):
+        for (i, ne) in enumerate(data.negative_examples):
+            zeta = self.add_atom(f"zeta_{i}", f"$\zeta_{i}$")
+            self.add_edge(zeta, d(ne))
+            print(ne)

@@ -7,6 +7,7 @@ class Master:
     """Master Algebra and Graph"""
 
     def add_node(self, kind, node, latex):
+        assert (node not in self.graph.nodes)
         kinds = {"atom": self.atoms, "constant": self.constants, "term": self.terms}
         assert (kind in kinds)
         node_list = kinds[kind]
@@ -15,23 +16,25 @@ class Master:
             latex = node
         self.graph.add_node(node, type=kind, latex=latex)
         node_list.append(node)
-
-    def add_atom(self, atom, latex):
-        self.add_node("atom", atom, latex)
+        return node
 
     def add_constant(self, constant, latex):
-        self.add_node("constant", constant, latex)
+        return self.add_node("constant", constant, latex)
 
     def add_term(self, term, latex):
-        self.add_node("term", term, latex)
+        return self.add_node("term", term, latex)
+
+    def add_atom(self, atom, latex):
+        return self.add_node("atom", atom, latex)
 
     def add_edge(self, a, b):
         assert (a in self.graph.nodes)
         assert (b in self.graph.nodes)
-        self.graph.add_edge(a, b)
+        return self.graph.add_edge(a, b)
 
     def close_graph(self):
         self.graph = nx.transitive_closure(self.graph)
+        return self.graph
 
     def __init__(self):
         self.relations = data.relations
