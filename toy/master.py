@@ -5,7 +5,7 @@ from matplotlib import pyplot
 from ordered_set import OrderedSet
 
 from toy.LaTeX import node_code
-from toy import data
+from toy import data, drawing
 
 
 class Master:
@@ -103,10 +103,7 @@ class Master:
         self.psi_counter = 0
         self.epsilon_prime_counter = 0
         self.pinning_term_counter = 0
-        if os.getcwd() == '/home/atsocs/Documents/ITA/2FUND_2020_2/PO-240 [Eletiva] - Tópicos em Inteligência Artificial/projeto/aml':
-            self.draw_flag = False
-        else:
-            self.draw_flag = False
+        self.draw_flag = True
 
         self.fig_counter = 0
 
@@ -131,8 +128,8 @@ class Master:
     def draw_and_save(self):
         pyplot.clf()
         self.draw()
-        pyplot.savefig(self.img_dir + str(self.fig_counter).zfill(4) + ".png")
-        self.fig_counter += 1
+        pyplot.savefig(self.img_dir + str(drawing.draw_and_save_counter).zfill(4) + ".png")
+        drawing.draw_and_save_counter += 1
 
     def draw(self, avoid_clutter=True, node_size=900, pos=None):
         types = list((nx.get_node_attributes(self.graph, "type")).values())

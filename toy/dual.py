@@ -77,10 +77,7 @@ class Dual:
 
     def __init__(self, master):
         self.img_dir = "img/dual/"
-        if os.getcwd() == '/home/atsocs/Documents/ITA/2FUND_2020_2/PO-240 [Eletiva] - Tópicos em Inteligência Artificial/projeto/aml':
-            self.draw_flag = False
-        else:
-            self.draw_flag = False
+        self.draw_flag = True
         self.fig_counter = 0
         self.drawing_mapping = {"atom": "c", "constant": "m", "dual-of-atom": "y"}
         self.constants = []  # duals of master's constants or terms
