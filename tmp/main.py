@@ -479,10 +479,10 @@ def main():
 
 if __name__ == '__main__':
     seed = 123456
-    master = nx.DiGraph()
-    dual = nx.DiGraph()
-
     numpy.random.seed(seed)
     random.seed(seed)
+
+    master = nx.DiGraph()
+    dual = nx.DiGraph()
 
     print(main())

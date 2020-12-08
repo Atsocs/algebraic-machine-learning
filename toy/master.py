@@ -84,7 +84,7 @@ class Master:
         self.epsilon_counter = 0
         self.psi_counter = 0
         self.epsilon_prime_counter = 0
-        self.draw_flag = False
+        self.draw_flag = True
 
         self.fig_counter = 0
 

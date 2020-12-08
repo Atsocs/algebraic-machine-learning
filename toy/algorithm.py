@@ -12,8 +12,8 @@ def trace(master, dual, x):
         set_list = [dual.gla(d(phi)) for phi in phi_set]
         return OrderedSet.intersection(*set_list)
     else:
-        # return None
-        raise Exception("trace(x): x contains no atoms")
+        return dual.atoms
+        # raise Exception("trace(x): x contains no atoms")
 
 
 def find_strongly_discriminant_constant(master, dual, a, b):
@@ -157,3 +157,37 @@ def sparse_crossing(master, dual, a, b):
     atoms_removed = len(to_remove)
 
     return psi_added, eps_prime_added, atoms_removed
+
+
+def atom_set_reduction(master, dual):
+    # this is a stochastic algorithm to reduce the number of atoms.
+    # this method can be called anytime, and should reduce the number of atoms in a few calls
+    # Q, A = OrderedSet(), master.constants
+    Q, A = OrderedSet(), [c for c in master.constants if trace(master, dual, c) is not None]
+    while True:
+        c = random.choice(tuple(A))
+        A.remove(c)
+        S = master.gl(c) & Q
+        if not S:
+            W = dual.atoms
+        else:
+            W = OrderedSet.intersection(*[dual.gla(d(phi)) for phi in S])
+        PHI = OrderedSet(d(phi) for phi in master.gla(c))
+        tr = trace(master, dual, c)
+        while (tr is not None) and (not same_set(W, tr)):
+            choose_from = W - tr
+            xi = random.choice(tuple(choose_from))
+            choose_from = PHI - dual.gu(xi)
+            phi = und(random.choice(tuple(choose_from)))
+            Q.append(phi)
+            W &= dual.gla(d(phi))
+        if not A:
+            break
+
+    to_remove = master.atoms - Q
+    master.remove_atoms_from(to_remove)
+    dual.remove_dual_of_atoms_from(map(d, to_remove))
+
+    print(len(to_remove))
+    return len(to_remove)
+

@@ -1,9 +1,17 @@
+import random
+from pprint import pformat
+
+import numpy
 from matplotlib import pyplot
 
 import toy.master
 import toy.dual
 from toy import algorithm
 from toy.data import target, positive_examples, negative_examples
+
+seed = 123456
+numpy.random.seed(seed)
+random.seed(seed)
 
 master = toy.master.Master()
 dual = toy.dual.Dual(master)
@@ -25,6 +33,18 @@ else:
 
 for pe in positive_examples:
     algorithm.sparse_crossing(master, dual, target, pe)
+
+
+master.fig_counter += 1000
+dual.fig_counter += 1000
+
+ctraces_before = [algorithm.trace(master, dual, c) for c in master.constants]
+
+algorithm.atom_set_reduction(master, dual)
+
+ctraces_after = [algorithm.trace(master, dual, c) for c in master.constants]
+
+print(ctraces_after == ctraces_before)
 
 
 def draw(save_name=None):

@@ -71,7 +71,7 @@ class Dual:
 
     def __init__(self, master):
         self.img_dir = "img/dual/"
-        self.draw_flag = False
+        self.draw_flag = True
         self.fig_counter = 0
         self.drawing_mapping = {"atom": "c", "constant": "m", "dual-of-atom": "y"}
         self.constants = []  # duals of master's constants or terms
