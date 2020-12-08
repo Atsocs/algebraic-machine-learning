@@ -25,8 +25,10 @@ negative_examples = (
      white, black),
 )
 
-relations = [('v', '<', positive_examples[i]) for i in range(len(positive_examples))]
-relations += [('v', '¬<', negative_examples[i]) for i in range(len(negative_examples))]
+negative_relations = [(target, ne) for ne in negative_examples]
+positive_relations = [(target, pe) for pe in positive_examples]
+
+R = {'-': negative_relations, '+': positive_relations}
 
 # print("Welcome to AML Toy!".center(50, "="))
 # print("constants: {}".format(constants),

@@ -1,3 +1,5 @@
+import os
+
 import networkx as nx
 
 from toy.master import Master
@@ -55,6 +57,7 @@ class Dual:
     gla = Master.__dict__['gla']
     glc = Master.__dict__['glc']
     gu = Master.__dict__['gu']
+    dis = Master.__dict__['dis']
 
     def remove_dual_of_atom(self, dual_of_atom):
         self.dual_of_atoms.remove(dual_of_atom)
@@ -69,9 +72,15 @@ class Dual:
             removed += self.remove_dual_of_atom(dual_of_atom)
         return removed
 
+    remove_atom = Master.__dict__['remove_atom']
+    remove_atoms_from = Master.__dict__['remove_atoms_from']
+
     def __init__(self, master):
         self.img_dir = "img/dual/"
-        self.draw_flag = True
+        if os.getcwd() == '/home/atsocs/Documents/ITA/2FUND_2020_2/PO-240 [Eletiva] - Tópicos em Inteligência Artificial/projeto/aml':
+            self.draw_flag = False
+        else:
+            self.draw_flag = True
         self.fig_counter = 0
         self.drawing_mapping = {"atom": "c", "constant": "m", "dual-of-atom": "y"}
         self.constants = []  # duals of master's constants or terms

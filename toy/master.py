@@ -1,3 +1,5 @@
+import os
+
 import networkx as nx
 from matplotlib import pyplot
 from ordered_set import OrderedSet
@@ -72,10 +74,13 @@ class Master:
     def gu(self, x):
         return OrderedSet(self.graph[x])
 
+    def dis(self, a, b):
+        return self.gla(a) - self.gla(b)
+
     def __init__(self):
         self.img_dir = "img/master/"
         self.drawing_mapping = {"atom": "r", "constant": "g", "term": "b"}
-        self.relations = data.relations
+        self.relations = data.R['+'] + data.R['-']
         self.terms = []
         self.constants = []
         self.atoms = []
@@ -84,7 +89,10 @@ class Master:
         self.epsilon_counter = 0
         self.psi_counter = 0
         self.epsilon_prime_counter = 0
-        self.draw_flag = True
+        if os.getcwd() == '/home/atsocs/Documents/ITA/2FUND_2020_2/PO-240 [Eletiva] - Tópicos em Inteligência Artificial/projeto/aml':
+            self.draw_flag = False
+        else:
+            self.draw_flag = True
 
         self.fig_counter = 0
 
@@ -93,7 +101,7 @@ class Master:
         for constant in data.constants:
             self.add_constant(constant, node_code.master_constant(constant))
 
-        for (target, relation, term) in self.relations:
+        for (target, term) in self.relations:
             self.add_term(term, node_code.master_term(term))
 
         self.add_edge(data.zero, data.target)

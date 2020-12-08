@@ -191,3 +191,18 @@ def atom_set_reduction(master, dual):
     print(len(to_remove))
     return len(to_remove)
 
+
+def atom_set_reduction_for_the_dual_algebra(dual):
+    Q = OrderedSet()
+    S = [(ne, target) for ne in negative_examples]
+    while S:
+        r = random.choice(S)
+        S.remove(r)
+        a, b = r
+        dis = dual.dis(d(b), d(a))
+        if dis and not (dis & Q):
+            xi = random.choice(tuple(dis))  # todo no need of random
+            Q.append(xi)
+    to_remove = dual.atoms - Q
+    dual.remove_atoms_from(to_remove)
+
