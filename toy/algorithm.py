@@ -5,6 +5,15 @@ from toy.dual import d, und, dlatex
 from toy.data import positive_examples, negative_examples, target
 
 
+def same_set(ordered_set_1, ordered_set_2):
+    if len(ordered_set_1) != len(ordered_set_2):
+        return False
+    for a in ordered_set_1:
+        if a not in ordered_set_2:
+            return False
+    return True
+
+
 def trace(master, dual, x):
     # x is always a member of master
     phi_set = master.gla(x)
@@ -14,6 +23,14 @@ def trace(master, dual, x):
     else:
         return dual.atoms
         # raise Exception("trace(x): x contains no atoms")
+
+
+def test_trace_constraints(master, dual):
+    positive_trace_constraints = [trace(master, dual, pe).issubset(trace(master, dual, target)) for pe in
+                                  positive_examples]
+    negative_trace_constraints = [not trace(master, dual, ne).issubset(trace(master, dual, target)) for ne in
+                                  negative_examples]
+    return all(positive_trace_constraints + negative_trace_constraints)
 
 
 def find_strongly_discriminant_constant(master, dual, a, b):
@@ -88,23 +105,6 @@ def enforce_positive_trace_constraints(master, dual, positive_relations):
     return epsilons_created
 
 
-def test_trace_constraints(master, dual):
-    positive_trace_constraints = [trace(master, dual, pe).issubset(trace(master, dual, target)) for pe in
-                                  positive_examples]
-    negative_trace_constraints = [not trace(master, dual, ne).issubset(trace(master, dual, target)) for ne in
-                                  negative_examples]
-    return all(positive_trace_constraints + negative_trace_constraints)
-
-
-def same_set(ordered_set_1, ordered_set_2):
-    if len(ordered_set_1) != len(ordered_set_2):
-        return False
-    for a in ordered_set_1:
-        if a not in ordered_set_2:
-            return False
-    return True
-
-
 def sparse_crossing(master, dual, a, b):
     psi_counter_before = master.psi_counter
     epsilon_prime_counter_before = master.epsilon_prime_counter
@@ -151,6 +151,8 @@ def sparse_crossing(master, dual, a, b):
     to_remove = list(U | A)
     master.remove_atoms_from(to_remove)
     dual.remove_dual_of_atoms_from(map(d, to_remove))
+    master.close_graph()
+    dual.close_graph()
 
     psi_added = master.psi_counter - psi_counter_before
     eps_prime_added = master.epsilon_prime_counter - epsilon_prime_counter_before
@@ -188,7 +190,8 @@ def atom_set_reduction(master, dual):
     master.remove_atoms_from(to_remove)
     dual.remove_dual_of_atoms_from(map(d, to_remove))
 
-    print(len(to_remove))
+    master.close_graph()
+    dual.close_graph()
     return len(to_remove)
 
 
@@ -205,4 +208,17 @@ def atom_set_reduction_for_the_dual_algebra(dual):
             Q.append(xi)
     to_remove = dual.atoms - Q
     dual.remove_atoms_from(to_remove)
+    dual.close_graph()
 
+
+def generation_of_pinning_terms_and_relations(master):
+    for phi in master.atoms + master.constants + master.terms:
+        H = master.constants - master.u(phi)
+        master.pinning_term_counter += 1
+        T = master.add_term('PT_' + str(master.pinning_term_counter),
+                            '$PT_{' + f'{master.pinning_term_counter}' + '}$')
+        master.merge(H, T)
+        master.close_graph()
+        for c in master.constants & master.u(phi):
+            r = (c, '-', T)
+            master.pinning_relations.append(r)

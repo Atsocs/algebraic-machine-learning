@@ -25,8 +25,8 @@ negative_examples = (
      white, black),
 )
 
-negative_relations = [(target, ne) for ne in negative_examples]
-positive_relations = [(target, pe) for pe in positive_examples]
+negative_relations = [(target, '-', ne) for ne in negative_examples]
+positive_relations = [(target, '+', pe) for pe in positive_examples]
 
 R = {'-': negative_relations, '+': positive_relations}
 

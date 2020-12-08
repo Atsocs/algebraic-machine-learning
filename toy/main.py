@@ -10,10 +10,6 @@ from toy.data import R
 
 
 def main():
-    """
-    Chapter 2 from the AML article
-    """
-
     seed = 123456
     numpy.random.seed(seed)
     random.seed(seed)

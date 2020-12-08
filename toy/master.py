@@ -77,10 +77,19 @@ class Master:
     def dis(self, a, b):
         return self.gla(a) - self.gla(b)
 
+    def u(self, x):  # todo
+        x = self.draw_flag
+        assert False
+
+    def merge(self, merge_set, target):  # todo
+        target = self.draw_flag
+        assert False
+
     def __init__(self):
         self.img_dir = "img/master/"
         self.drawing_mapping = {"atom": "r", "constant": "g", "term": "b"}
         self.relations = data.R['+'] + data.R['-']
+        self.pinning_relations = []
         self.terms = []
         self.constants = []
         self.atoms = []
@@ -89,6 +98,7 @@ class Master:
         self.epsilon_counter = 0
         self.psi_counter = 0
         self.epsilon_prime_counter = 0
+        self.pinning_term_counter = 0
         if os.getcwd() == '/home/atsocs/Documents/ITA/2FUND_2020_2/PO-240 [Eletiva] - Tópicos em Inteligência Artificial/projeto/aml':
             self.draw_flag = False
         else:
@@ -101,7 +111,7 @@ class Master:
         for constant in data.constants:
             self.add_constant(constant, node_code.master_constant(constant))
 
-        for (target, term) in self.relations:
+        for (target, relation, term) in self.relations:
             self.add_term(term, node_code.master_term(term))
 
         self.add_edge(data.zero, data.target)
