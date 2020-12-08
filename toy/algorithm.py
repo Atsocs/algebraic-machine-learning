@@ -49,7 +49,7 @@ def find_strongly_discriminant_constant(master, dual, a, b):
 def enforce_negative_trace_constraints(master, dual, negative_relations):
     phi_counter_before = master.phi_counter
     zeta_counter_before = dual.zeta_counter
-    for (a, b) in negative_relations:
+    for (a, relation, b) in negative_relations:
         if trace(master, dual, b).issubset(trace(master, dual, a)):
             while True:
                 c = find_strongly_discriminant_constant(master, dual, a, b)
@@ -80,7 +80,7 @@ def enforce_negative_trace_constraints(master, dual, negative_relations):
 
 def enforce_positive_trace_constraints(master, dual, positive_relations):
     epsilons_before = master.epsilon_counter
-    for (D, E) in positive_relations:
+    for (D, relation, E) in positive_relations:
         while not trace(master, dual, E).issubset(trace(master, dual, D)):
             choose_from = trace(master, dual, E) - trace(master, dual, D)
             zeta = random.choice(tuple(choose_from))
@@ -211,14 +211,24 @@ def atom_set_reduction_for_the_dual_algebra(dual):
     dual.close_graph()
 
 
-def generation_of_pinning_terms_and_relations(master):
-    for phi in master.atoms + master.constants + master.terms:
+def merge_into(master, dual, merge_set, x):
+    to_union = [master.gla(x) for x in merge_set]
+    gla = OrderedSet().union(*to_union)
+    for atom in gla:
+        master.add_edge(atom, x)
+        dual.add_edge(d(x), d(atom))
+    master.close_graph()
+    return x
+
+
+def generation_of_pinning_terms_and_relations(master, dual):
+    for phi in master.atoms:
         H = master.constants - master.u(phi)
         master.pinning_term_counter += 1
         T = master.add_term('PT_' + str(master.pinning_term_counter),
                             '$PT_{' + f'{master.pinning_term_counter}' + '}$')
-        master.merge(H, T)
-        master.close_graph()
+        dual.add_constant(d(T), dlatex(master.graph.nodes[T]))
+        merge_into(master, dual, H, T)
         for c in master.constants & master.u(phi):
             r = (c, '-', T)
             master.pinning_relations.append(r)

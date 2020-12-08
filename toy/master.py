@@ -77,13 +77,17 @@ class Master:
     def dis(self, a, b):
         return self.gla(a) - self.gla(b)
 
-    def u(self, x):  # todo
-        x = self.draw_flag
-        assert False
+    def less(self, a, b):
+        for phi in self.atoms:
+            neighbors = self.graph[phi]
+            if not (
+                    (a not in neighbors) or (b in neighbors)
+            ):
+                return False
+        return True
 
-    def merge(self, merge_set, target):  # todo
-        target = self.draw_flag
-        assert False
+    def u(self, x):
+        return OrderedSet(y for y in self.atoms + self.constants + self.terms if self.less(x, y))
 
     def __init__(self):
         self.img_dir = "img/master/"
@@ -102,7 +106,7 @@ class Master:
         if os.getcwd() == '/home/atsocs/Documents/ITA/2FUND_2020_2/PO-240 [Eletiva] - Tópicos em Inteligência Artificial/projeto/aml':
             self.draw_flag = False
         else:
-            self.draw_flag = True
+            self.draw_flag = False
 
         self.fig_counter = 0
 

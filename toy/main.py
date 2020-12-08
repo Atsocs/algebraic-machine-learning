@@ -21,9 +21,12 @@ def main():
     # TODO: check for consistency after dual.reverted_negative_relations()
     algorithm.enforce_negative_trace_constraints(master, dual, R['-'])
     algorithm.enforce_positive_trace_constraints(master, dual, R['+'])
-    for pr in R['+']:
-        algorithm.sparse_crossing(master, dual, *pr)
+    for (a, relation, b) in R['+']:
+        algorithm.sparse_crossing(master, dual, a, b)
     algorithm.atom_set_reduction(master, dual)
+    algorithm.atom_set_reduction_for_the_dual_algebra(dual)
+
+    algorithm.generation_of_pinning_terms_and_relations(master, dual)
 
     draw(master, dual)
 
