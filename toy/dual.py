@@ -47,7 +47,8 @@ class Dual:
     get_pos = Master.__dict__['get_pos']
 
     def reverted_negative_relations(self):
-        for ne in data.negative_examples:
+        negative_examples = [ne for (v, minus, ne) in data.R['-']]
+        for ne in negative_examples:
             self.zeta_counter += 1
             zeta = self.add_atom(f"zeta_{self.zeta_counter}", r"$\zeta_{" + f'{self.zeta_counter}' + "}$")
             self.add_edge(zeta, d(ne))
@@ -77,7 +78,7 @@ class Dual:
 
     def __init__(self, master):
         self.img_dir = "img/dual/"
-        self.draw_flag = True
+        self.draw_flag = False if os.getcwd() == '/home/atsocs/Documents/ITA/2FUND_2020_2/PO-240 [Eletiva] - Tópicos em Inteligência Artificial/projeto/aml' else True
         self.fig_counter = 0
         self.drawing_mapping = {"atom": "c", "constant": "m", "dual-of-atom": "y"}
         self.constants = []  # duals of master's constants or terms
@@ -100,7 +101,8 @@ class Dual:
         self.add_atom(data.zero_star, node_code.dual_atom(data.zero_star))
         for t in master.terms:
             self.add_edge(data.zero_star, d(t))
-        for pe in data.positive_examples:
+        positive_examples = [pe for (v, plus, pe) in data.R['+']]
+        for pe in positive_examples:
             self.add_edge(d(pe), d(data.target))
 
         self.close_graph()

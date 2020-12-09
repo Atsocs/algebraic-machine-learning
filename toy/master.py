@@ -103,7 +103,7 @@ class Master:
         self.psi_counter = 0
         self.epsilon_prime_counter = 0
         self.pinning_term_counter = 0
-        self.draw_flag = True
+        self.draw_flag = False if os.getcwd() == '/home/atsocs/Documents/ITA/2FUND_2020_2/PO-240 [Eletiva] - Tópicos em Inteligência Artificial/projeto/aml' else True
 
         self.fig_counter = 0
 

@@ -30,6 +30,8 @@ positive_relations = [(target, '+', pe) for pe in positive_examples]
 
 R = {'-': negative_relations, '+': positive_relations}
 
+del(positive_examples, negative_examples, negative_relations, positive_relations)
+
 # print("Welcome to AML Toy!".center(50, "="))
 # print("constants: {}".format(constants),
 #       "positive_examples: {}".format(positive_examples),

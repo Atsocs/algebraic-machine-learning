@@ -1,10 +1,11 @@
 import random
+from pprint import pformat
 
 from ordered_set import OrderedSet
 
 from toy import drawing
 from toy.dual import d, und, dlatex
-from toy.data import positive_examples, negative_examples, target
+from toy.data import R, target, zero, zero_star
 
 
 def same_set(ordered_set_1, ordered_set_2):
@@ -28,10 +29,10 @@ def trace(master, dual, x):
 
 
 def test_trace_constraints(master, dual):
-    positive_trace_constraints = [trace(master, dual, pe).issubset(trace(master, dual, target)) for pe in
-                                  positive_examples]
-    negative_trace_constraints = [not trace(master, dual, ne).issubset(trace(master, dual, target)) for ne in
-                                  negative_examples]
+    positive_trace_constraints = [trace(master, dual, pe).issubset(trace(master, dual, target)) for (v, plus, pe) in
+                                  R['+']]
+    negative_trace_constraints = [not trace(master, dual, ne).issubset(trace(master, dual, target)) for (v, minus, ne) in
+                                  R['-']]
     return all(positive_trace_constraints + negative_trace_constraints)
 
 
@@ -170,11 +171,13 @@ def sparse_crossing(master, dual, a, b):
     return psi_added, eps_prime_added, atoms_removed
 
 
-def atom_set_reduction(master, dual):
+def atom_set_reduction(master, dual, keep_zero=False):
     # this is a stochastic algorithm to reduce the number of atoms.
     # this method can be called anytime, and should reduce the number of atoms in a few calls
     # Q, A = OrderedSet(), master.constants
     Q, A = OrderedSet(), [c for c in master.constants if trace(master, dual, c) is not None]
+    if keep_zero:
+        Q.append(zero)
     while True:
         c = random.choice(tuple(A))
         print(drawing.draw_and_save_counter, c)
@@ -207,16 +210,18 @@ def atom_set_reduction(master, dual):
     return len(to_remove)
 
 
-def atom_set_reduction_for_the_dual_algebra(dual):
+def atom_set_reduction_for_the_dual_algebra(dual, keep_zero=False):
     Q = OrderedSet()
-    S = [(ne, target) for ne in negative_examples]
+    if keep_zero:
+        Q.append(zero_star)
+    S = R['-']
     while S:
         r = random.choice(S)
         print(drawing.draw_and_save_counter, r)
         S.remove(r)
-        a, b = r
+        a, relation, b = r
         dis = dual.dis(d(b), d(a))
-        if dis and not (dis & Q):
+        if not (dis & Q):
             xi = random.choice(tuple(dis))  # todo no need of random
             print(drawing.draw_and_save_counter, xi)
             Q.append(xi)
@@ -238,11 +243,13 @@ def merge_into(master, dual, merge_set, x):
 def generation_of_pinning_terms_and_relations(master, dual):
     for phi in master.atoms:
         H = master.constants - master.u(phi)
-        master.pinning_term_counter += 1
-        T = master.add_term('PT_' + str(master.pinning_term_counter),
-                            '$PT_{' + f'{master.pinning_term_counter}' + '}$')
-        dual.add_constant(d(T), dlatex(master.graph.nodes[T]))
-        merge_into(master, dual, H, T)
-        for c in master.constants & master.u(phi):
-            r = (c, '-', T)
-            master.pinning_relations.append(r)
+
+        if H:
+            master.pinning_term_counter += 1
+            T = master.add_term('PT_' + str(master.pinning_term_counter),
+                                '$PT_{' + f'{master.pinning_term_counter}' + '}$')
+            dual.add_constant(d(T), dlatex(master.graph.nodes[T]))
+            merge_into(master, dual, H, T)
+            for c in master.constants & master.u(phi):
+                r = (c, '-', T)
+                master.pinning_relations.append(r)
