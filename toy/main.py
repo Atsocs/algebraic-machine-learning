@@ -1,5 +1,6 @@
 import os
 import random
+from pprint import pformat
 
 import numpy
 
@@ -52,6 +53,8 @@ def main():
     algorithm.atom_set_reduction_for_the_dual_algebra(dual)
     drawing.draw_and_save_counter += 1000
     algorithm.generation_of_pinning_terms_and_relations(master, dual)
+
+    print(pformat(master.pinning_relations))
 
     draw(master, dual)
 

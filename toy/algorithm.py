@@ -7,6 +7,27 @@ from toy import drawing
 from toy.dual import d, und, dlatex
 from toy.data import R, target, zero, zero_star
 
+# random_choice = random.choice
+choice_feeder = [1, 0] + [0] * 6 + [1] * 3 + [0] * (13 + 6)
+choices_made = 0
+
+
+def random_choice(tup):
+    global choices_made
+    if choices_made < len(choice_feeder):
+        ret = tup[choice_feeder[choices_made]]
+        choices_made += 1
+        return ret
+    n = None
+    while n is None:
+        print(*[f'{i} - ' + str(option) for (i, option) in enumerate(tup)], sep='\n')
+        n = int(input())
+        if 0 <= n < len(tup):
+            return tup[n]
+        else:
+            print('try again')
+            n = None
+
 
 def same_set(ordered_set_1, ordered_set_2):
     if len(ordered_set_1) != len(ordered_set_2):
@@ -31,7 +52,8 @@ def trace(master, dual, x):
 def test_trace_constraints(master, dual):
     positive_trace_constraints = [trace(master, dual, pe).issubset(trace(master, dual, target)) for (v, plus, pe) in
                                   R['+']]
-    negative_trace_constraints = [not trace(master, dual, ne).issubset(trace(master, dual, target)) for (v, minus, ne) in
+    negative_trace_constraints = [not trace(master, dual, ne).issubset(trace(master, dual, target)) for (v, minus, ne)
+                                  in
                                   R['-']]
     return all(positive_trace_constraints + negative_trace_constraints)
 
@@ -40,14 +62,14 @@ def find_strongly_discriminant_constant(master, dual, a, b):
     omega = OrderedSet(d(c) for c in master.glc(a))
     u = trace(master, dual, b)
     while u:
-        zeta = random.choice(tuple(u))  # todo: no need of random here
+        zeta = random_choice(tuple(u))  # todo: no need of random here
         print(drawing.draw_and_save_counter, zeta)
         u.remove(zeta)
         choose_from = omega - dual.gu(zeta)
         if choose_from:
-            dc = random.choice(tuple(choose_from))  # todo: no need of random here
+            dc = random_choice(tuple(choose_from))  # todo: no need of random here
             print(drawing.draw_and_save_counter, dc)
-            
+
             return und(dc)
     return None
 
@@ -61,7 +83,7 @@ def enforce_negative_trace_constraints(master, dual, negative_relations):
                 c = find_strongly_discriminant_constant(master, dual, a, b)
                 if c is None:
                     choose_from = dual.glc(d(b)) - dual.gl(d(a))
-                    h = random.choice(tuple(choose_from))  # todo: maybe not random here is okay
+                    h = random_choice(tuple(choose_from))  # todo: maybe not random here is okay
                     print(drawing.draw_and_save_counter, h)
 
                     # add new atom zeta to dual and edge zeta -> h
@@ -90,14 +112,14 @@ def enforce_positive_trace_constraints(master, dual, positive_relations):
     for (D, relation, E) in positive_relations:
         while not trace(master, dual, E).issubset(trace(master, dual, D)):
             choose_from = trace(master, dual, E) - trace(master, dual, D)
-            zeta = random.choice(tuple(choose_from))
+            zeta = random_choice(tuple(choose_from))
             print(drawing.draw_and_save_counter, zeta)
             gamma = OrderedSet(c for c in master.glc(E) if zeta not in dual.gl(d(c)))
             if not gamma:
                 dual.add_edge(zeta, d(D))
                 dual.close_graph()
             else:
-                c = random.choice(tuple(gamma))
+                c = random_choice(tuple(gamma))
                 print(drawing.draw_and_save_counter, c)
 
                 # add new atom epsilon to M and edge epsilon -> c #todo: maybe change epislon to phi too?
@@ -123,7 +145,7 @@ def sparse_crossing(master, dual, a, b):
     for phi in A:
         U, B, delta = OrderedSet(), master.gla(b), dual.atoms - dual.gl(d(phi))
         while True:
-            eps = random.choice(tuple(B))
+            eps = random_choice(tuple(B))
             print(drawing.draw_and_save_counter, eps)
             delta_prime = delta & dual.gl(d(eps))
             if (not delta) or (not same_set(delta, delta_prime)):
@@ -179,7 +201,7 @@ def atom_set_reduction(master, dual, keep_zero=False):
     if keep_zero:
         Q.append(zero)
     while True:
-        c = random.choice(tuple(A))
+        c = random_choice(tuple(A))
         print(drawing.draw_and_save_counter, c)
         A.remove(c)
         S = master.gl(c) & Q
@@ -191,10 +213,10 @@ def atom_set_reduction(master, dual, keep_zero=False):
         tr = trace(master, dual, c)
         while (tr is not None) and (not same_set(W, tr)):
             choose_from = W - tr
-            xi = random.choice(tuple(choose_from))
+            xi = random_choice(tuple(choose_from))
             print(drawing.draw_and_save_counter, xi)
             choose_from = PHI - dual.gu(xi)
-            phi = und(random.choice(tuple(choose_from)))
+            phi = und(random_choice(tuple(choose_from)))
             print(drawing.draw_and_save_counter, phi)
             Q.append(phi)
             W &= dual.gla(d(phi))
@@ -216,13 +238,13 @@ def atom_set_reduction_for_the_dual_algebra(dual, keep_zero=False):
         Q.append(zero_star)
     S = R['-']
     while S:
-        r = random.choice(S)
+        r = random_choice(S)
         print(drawing.draw_and_save_counter, r)
         S.remove(r)
         a, relation, b = r
         dis = dual.dis(d(b), d(a))
         if not (dis & Q):
-            xi = random.choice(tuple(dis))  # todo no need of random
+            xi = random_choice(tuple(dis))  # todo no need of random
             print(drawing.draw_and_save_counter, xi)
             Q.append(xi)
     to_remove = dual.atoms - Q
@@ -240,7 +262,7 @@ def merge_into(master, dual, merge_set, x):
     return x
 
 
-def generation_of_pinning_terms_and_relations(master, dual):
+def generation_of_pinning_terms_and_relations(master, dual):  # fixme
     for phi in master.atoms:
         H = master.constants - master.u(phi)
 
