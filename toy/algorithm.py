@@ -30,7 +30,10 @@ if aaaa:
 else:
     random_choice = random.choice
 
-choice = random_choice  # todo: write function choice
+
+def choice(tup):
+    assert (len(tup) > 0)
+    return tup[0]
 
 
 def same_set(ordered_set_1, ordered_set_2):
