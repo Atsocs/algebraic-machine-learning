@@ -3,12 +3,16 @@ import shutil
 
 from matplotlib import pyplot
 
+pyplot.ioff()
+
 draw_and_save_counter = 0
+draw_flag = False
+path = os.getcwd()
 
 
 def erase_img():
-    erase_folder("img/master/")
-    erase_folder("img/dual/")
+    erase_folder(path + "/toy/img/master/")
+    erase_folder(path + "/toy/img/dual/")
 
 
 def erase_folder(folder):

@@ -12,9 +12,18 @@ class Master:
     """Master Algebra and Graph"""
 
     def rename_node(self, node, new_name, latex=None):
+        node_list = self.kinds[self.graph.nodes[node]['type']]
+        assert (node in node_list)
+        node_list.remove(node)
+
         if new_name in self.graph.nodes:
+            assert (new_name in node_list)
+            self.graph = nx.contracted_nodes(self.graph, new_name, node, self_loops=False)
             print("WARNING in rename_node: name '" + new_name + "' is already taken")
             return False
+
+        node_list.append(new_name)
+
         mapping = {node: new_name}
         self.graph = nx.relabel_nodes(self.graph, mapping, copy=False)
         if latex is not None:
@@ -95,9 +104,11 @@ class Master:
         return OrderedSet(y for y in self.atoms + self.constants + self.terms if self.less(x, y))
 
     def __init__(self):
-        self.img_dir = "img/master/"
+        self.img_dir = drawing.path + "/toy/img/master/"
         self.drawing_mapping = {"atom": "r", "constant": "g", "term": "b"}
-        self.relations = data.R['+'] + data.R['-']
+        self.positive_relations = data.R['+']
+        self.negative_relations = data.R['-']
+        self.relations = self.positive_relations + self.negative_relations
         self.pinning_relations = []
         self.terms = []
         self.constants = []
@@ -109,7 +120,8 @@ class Master:
         self.epsilon_prime_counter = 0
         self.pinning_term_counter = 0
         self.combined_terms_counter = 0
-        self.draw_flag = False if os.getcwd() == '/home/atsocs/Documents/ITA/2FUND_2020_2/PO-240 [Eletiva] - Tópicos em Inteligência Artificial/projeto/aml' else True
+        self.draw_flag = drawing.draw_flag
+        self.epoch = 0
 
         self.fig_counter = 0
 

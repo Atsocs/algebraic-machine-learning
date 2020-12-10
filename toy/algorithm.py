@@ -3,12 +3,14 @@ import random
 from ordered_set import OrderedSet
 
 from toy import drawing
+from toy.data import target, zero, zero_star, mixed, empty
 from toy.dual import d, und, dlatex
-from toy.data import R, target, zero, zero_star, mixed, empty
 
-aaaa = True
+flag_print_choices = False
+
+aaaa = False
 if aaaa:
-    choice_feeder = [1, 0] + [0] * 6 + [1] * 3 + [0] * (13 + 6)
+    choice_feeder = [] + [0] * 6 + [1] * 3 + [0] * (13 + 3)
     choices_made = 0
 
 
@@ -17,12 +19,16 @@ if aaaa:
         if choices_made < len(choice_feeder):
             ret = tup[choice_feeder[choices_made]]
             choices_made += 1
+            if flag_print_choices:
+                print('rc', drawing.draw_and_save_counter, ret)
             return ret
         n = None
         while n is None:
             print(*[f'{i} - ' + str(option) for (i, option) in enumerate(tup)], sep='\n')
             n = int(input())
             if 0 <= n < len(tup):
+                if flag_print_choices:
+                    print('rc', drawing.draw_and_save_counter, tup[n])
                 return tup[n]
             else:
                 print('try again')
@@ -33,6 +39,8 @@ else:
 
 def choice(tup):
     assert (len(tup) > 0)
+    if flag_print_choices:
+        print('rc', drawing.draw_and_save_counter, tup[0])
     return tup[0]
 
 
@@ -46,7 +54,7 @@ def same_set(ordered_set_1, ordered_set_2):
 
 
 def trace(master, dual, x):
-    assert(x in master.graph.nodes)
+    assert (x in master.graph.nodes)
     phi_set = master.gla(x)
     if phi_set:
         set_list = [dual.gla(d(phi)) for phi in phi_set]
@@ -55,13 +63,21 @@ def trace(master, dual, x):
         return dual.atoms
 
 
-def test_trace_constraints(master, dual):
-    positive_trace_constraints = [trace(master, dual, pe).issubset(trace(master, dual, target)) for (v, plus, pe) in
-                                  R['+']]
-    negative_trace_constraints = [not trace(master, dual, ne).issubset(trace(master, dual, target)) for (v, minus, ne)
-                                  in
-                                  R['-']]
+def test_trace_constraints(master, dual, relations):
+    positive_trace_constraints = [trace(master, dual, pe).issubset(trace(master, dual, target)) for (v, relation, pe)
+                                  in relations if relation == '+']
+    negative_trace_constraints = [not trace(master, dual, ne).issubset(trace(master, dual, target)) for
+                                  (v, relation, ne)
+                                  in relations if relation == '-']
     return all(positive_trace_constraints + negative_trace_constraints)
+
+
+def test_goal(master, relations):
+    positive_objectives = [master.less(v, pe) for (v, relation, pe)
+                           in relations if relation == '+']
+    negative_objectives = [not master.less(v, ne) for (v, relation, ne)
+                           in relations if relation == '-']
+    return all(positive_objectives + negative_objectives)
 
 
 def find_strongly_discriminant_constant(master, dual, a, b):
@@ -69,12 +85,10 @@ def find_strongly_discriminant_constant(master, dual, a, b):
     u = trace(master, dual, b)
     while u:
         zeta = choice(tuple(u))
-        print(drawing.draw_and_save_counter, zeta)
         u.remove(zeta)
         choose_from = omega - dual.gu(zeta)
         if choose_from:
             dc = choice(tuple(choose_from))
-            print(drawing.draw_and_save_counter, dc)
 
             return und(dc)
     return None
@@ -90,7 +104,6 @@ def enforce_negative_trace_constraints(master, dual, negative_relations):
                 if c is None:
                     choose_from = dual.glc(d(b)) - dual.gl(d(a))
                     h = choice(tuple(choose_from))
-                    print(drawing.draw_and_save_counter, h)
 
                     # add new atom zeta to dual and edge zeta -> h
                     dual.zeta_counter += 1
@@ -119,14 +132,12 @@ def enforce_positive_trace_constraints(master, dual, positive_relations):
         while not trace(master, dual, E).issubset(trace(master, dual, D)):
             choose_from = trace(master, dual, E) - trace(master, dual, D)
             zeta = random_choice(tuple(choose_from))
-            print(drawing.draw_and_save_counter, zeta)
             gamma = OrderedSet(c for c in master.glc(E) if zeta not in dual.gl(d(c)))
             if not gamma:
                 dual.add_edge(zeta, d(D))
                 dual.close_graph()
             else:
                 c = random_choice(tuple(gamma))
-                print(drawing.draw_and_save_counter, c)
 
                 # add new atom epsilon to M and edge epsilon -> c
                 master.epsilon_counter += 1
@@ -152,7 +163,6 @@ def sparse_crossing(master, dual, a, b):
         U, B, delta = OrderedSet(), master.gla(b), dual.atoms - dual.gl(d(phi))
         while True:
             eps = random_choice(tuple(B))
-            print(drawing.draw_and_save_counter, eps)
             delta_prime = delta & dual.gl(d(eps))
             if (not delta) or (not same_set(delta, delta_prime)):
                 # add new atom psi to M and edges psi -> phi and psi -> epsilon
@@ -202,13 +212,11 @@ def sparse_crossing(master, dual, a, b):
 def atom_set_reduction(master, dual, keep_zero=False):
     # this is a stochastic algorithm to reduce the number of atoms.
     # this method can be called anytime, and should reduce the number of atoms in a few calls
-    # Q, A = OrderedSet(), master.constants  # todo: verify which line is correct, this one or the line below
     Q, A = OrderedSet(), [c for c in master.constants if trace(master, dual, c) is not None]
     if keep_zero:
         Q.append(zero)
     while True:
         c = random_choice(tuple(A))
-        print(drawing.draw_and_save_counter, c)
         A.remove(c)
         S = master.gl(c) & Q
         if not S:
@@ -220,10 +228,8 @@ def atom_set_reduction(master, dual, keep_zero=False):
         while (tr is not None) and (not same_set(W, tr)):
             choose_from = W - tr
             xi = random_choice(tuple(choose_from))
-            print(drawing.draw_and_save_counter, xi)
             choose_from = PHI - dual.gu(xi)
             phi = und(random_choice(tuple(choose_from)))
-            print(drawing.draw_and_save_counter, phi)
             Q.append(phi)
             W &= dual.gla(d(phi))
         if not A:
@@ -238,20 +244,18 @@ def atom_set_reduction(master, dual, keep_zero=False):
     return len(to_remove)
 
 
-def atom_set_reduction_for_the_dual_algebra(dual, keep_zero=False):
+def atom_set_reduction_for_the_dual_algebra(dual, negative_relations, keep_zero=False):
     Q = OrderedSet()
     if keep_zero:
         Q.append(zero_star)
-    S = R['-'].copy()
+    S = negative_relations.copy()
     while S:
         r = random_choice(S)
-        print(drawing.draw_and_save_counter, r)
         S.remove(r)
         a, relation, b = r
         dis = dual.dis(d(b), d(a))
         if not (dis & Q):
             xi = choice(tuple(dis))
-            print(drawing.draw_and_save_counter, xi)
             Q.append(xi)
     to_remove = dual.atoms - Q
     dual.remove_atoms_from(to_remove)
@@ -312,8 +316,8 @@ def combine_terms(a, b):
             T[i] = a[i]
         else:
             T[i] = mixed
-    print(*a[0:2], ' ', *b[0:2], ' ', *T[0:2])
-    print(*a[2:4], '+', *b[2:4], '=', *T[2:4], end='\n\n')
+    # print(*a[0:2], ' ', *b[0:2], ' ', *T[0:2])
+    # print(*a[2:4], '+', *b[2:4], '=', *T[2:4], end='\n\n')
     return tuple(T)
 
 

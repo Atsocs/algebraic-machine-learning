@@ -1,9 +1,7 @@
-import os
-
 import networkx as nx
 
 from toy.master import Master
-from toy import data
+from toy import data, drawing
 from toy.LaTeX import node_code
 
 
@@ -47,8 +45,8 @@ class Dual:
     draw = Master.__dict__['draw']
     get_pos = Master.__dict__['get_pos']
 
-    def reverted_negative_relations(self):
-        negative_examples = [ne for (v, minus, ne) in data.R['-']]
+    def reverted_negative_relations(self, negative_relations):
+        negative_examples = [ne for (v, minus, ne) in negative_relations]
         for ne in negative_examples:
             self.zeta_counter += 1
             zeta = self.add_atom(f"zeta_{self.zeta_counter}", r"$\zeta_{" + f'{self.zeta_counter}' + "}$")
@@ -78,8 +76,8 @@ class Dual:
     remove_atoms_from = Master.__dict__['remove_atoms_from']
 
     def __init__(self, master):
-        self.img_dir = "img/dual/"
-        self.draw_flag = False if os.getcwd() == '/home/atsocs/Documents/ITA/2FUND_2020_2/PO-240 [Eletiva] - Tópicos em Inteligência Artificial/projeto/aml' else True
+        self.img_dir = drawing.path + "/toy/img/dual/"
+        self.draw_flag = drawing.draw_flag
         self.fig_counter = 0
         self.drawing_mapping = {"atom": "c", "constant": "m", "dual-of-atom": "y"}
         self.constants = []  # duals of master's constants or terms
