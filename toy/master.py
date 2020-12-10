@@ -11,6 +11,16 @@ from toy import data, drawing
 class Master:
     """Master Algebra and Graph"""
 
+    def rename_node(self, node, new_name, latex=None):
+        if new_name in self.graph.nodes:
+            print("WARNING in rename_node: name '" + new_name + "' is already taken")
+            return False
+        mapping = {node: new_name}
+        self.graph = nx.relabel_nodes(self.graph, mapping, copy=False)
+        if latex is not None:
+            self.graph.nodes[new_name]['latex'] = latex
+        return True
+
     def add_node(self, kind, node, latex):
         assert (node not in self.graph.nodes)
         assert (kind in self.kinds)
@@ -36,10 +46,11 @@ class Master:
     def add_edge(self, a, b):
         assert (a in self.graph.nodes)
         assert (b in self.graph.nodes)
-        ret = self.graph.add_edge(a, b)
+        if a == b or (a, b) in self.graph.edges:
+            return
+        self.graph.add_edge(a, b)
         if self.draw_flag:
             self.draw_and_save()
-        return ret
 
     def remove_atom(self, atom):
         self.atoms.remove(atom)
@@ -78,13 +89,7 @@ class Master:
         return self.gla(a) - self.gla(b)
 
     def less(self, a, b):
-        for phi in self.atoms:
-            neighbors = self.graph[phi]
-            if not (
-                    (a not in neighbors) or (b in neighbors)
-            ):
-                return False
-        return True
+        return self.gla(a).issubset(self.gla(b))
 
     def u(self, x):
         return OrderedSet(y for y in self.atoms + self.constants + self.terms if self.less(x, y))
@@ -103,6 +108,7 @@ class Master:
         self.psi_counter = 0
         self.epsilon_prime_counter = 0
         self.pinning_term_counter = 0
+        self.combined_terms_counter = 0
         self.draw_flag = False if os.getcwd() == '/home/atsocs/Documents/ITA/2FUND_2020_2/PO-240 [Eletiva] - Tópicos em Inteligência Artificial/projeto/aml' else True
 
         self.fig_counter = 0
@@ -144,7 +150,7 @@ class Master:
         else:
             g = self.graph
         nx.draw(g, pos, node_size=node_size, edgecolors=colors, node_color="white", linewidths=1.0)
-        nx.draw_networkx_labels(g, pos, labels=labels, font_size=10, font_family='sans-serif')
+        nx.draw_networkx_labels(g, pos, labels=labels, font_size=10)
 
     def get_pos(self):
         pos = nx.drawing.nx_agraph.graphviz_layout(self.graph, prog="dot")

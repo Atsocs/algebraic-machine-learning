@@ -1,32 +1,36 @@
 import random
-from pprint import pformat
 
 from ordered_set import OrderedSet
 
 from toy import drawing
 from toy.dual import d, und, dlatex
-from toy.data import R, target, zero, zero_star
+from toy.data import R, target, zero, zero_star, mixed, empty
 
-# random_choice = random.choice
-choice_feeder = [1, 0] + [0] * 6 + [1] * 3 + [0] * (13 + 6)
-choices_made = 0
+aaaa = True
+if aaaa:
+    choice_feeder = [1, 0] + [0] * 6 + [1] * 3 + [0] * (13 + 6)
+    choices_made = 0
 
 
-def random_choice(tup):
-    global choices_made
-    if choices_made < len(choice_feeder):
-        ret = tup[choice_feeder[choices_made]]
-        choices_made += 1
-        return ret
-    n = None
-    while n is None:
-        print(*[f'{i} - ' + str(option) for (i, option) in enumerate(tup)], sep='\n')
-        n = int(input())
-        if 0 <= n < len(tup):
-            return tup[n]
-        else:
-            print('try again')
-            n = None
+    def random_choice(tup):
+        global choices_made
+        if choices_made < len(choice_feeder):
+            ret = tup[choice_feeder[choices_made]]
+            choices_made += 1
+            return ret
+        n = None
+        while n is None:
+            print(*[f'{i} - ' + str(option) for (i, option) in enumerate(tup)], sep='\n')
+            n = int(input())
+            if 0 <= n < len(tup):
+                return tup[n]
+            else:
+                print('try again')
+                n = None
+else:
+    random_choice = random.choice
+
+choice = random_choice  # todo: write function choice
 
 
 def same_set(ordered_set_1, ordered_set_2):
@@ -39,14 +43,13 @@ def same_set(ordered_set_1, ordered_set_2):
 
 
 def trace(master, dual, x):
-    # x is always a member of master
+    assert(x in master.graph.nodes)
     phi_set = master.gla(x)
     if phi_set:
         set_list = [dual.gla(d(phi)) for phi in phi_set]
         return OrderedSet.intersection(*set_list)
     else:
         return dual.atoms
-        # raise Exception("trace(x): x contains no atoms")
 
 
 def test_trace_constraints(master, dual):
@@ -62,12 +65,12 @@ def find_strongly_discriminant_constant(master, dual, a, b):
     omega = OrderedSet(d(c) for c in master.glc(a))
     u = trace(master, dual, b)
     while u:
-        zeta = random_choice(tuple(u))  # todo: no need of random here
+        zeta = choice(tuple(u))
         print(drawing.draw_and_save_counter, zeta)
         u.remove(zeta)
         choose_from = omega - dual.gu(zeta)
         if choose_from:
-            dc = random_choice(tuple(choose_from))  # todo: no need of random here
+            dc = choice(tuple(choose_from))
             print(drawing.draw_and_save_counter, dc)
 
             return und(dc)
@@ -83,7 +86,7 @@ def enforce_negative_trace_constraints(master, dual, negative_relations):
                 c = find_strongly_discriminant_constant(master, dual, a, b)
                 if c is None:
                     choose_from = dual.glc(d(b)) - dual.gl(d(a))
-                    h = random_choice(tuple(choose_from))  # todo: maybe not random here is okay
+                    h = choice(tuple(choose_from))
                     print(drawing.draw_and_save_counter, h)
 
                     # add new atom zeta to dual and edge zeta -> h
@@ -122,7 +125,7 @@ def enforce_positive_trace_constraints(master, dual, positive_relations):
                 c = random_choice(tuple(gamma))
                 print(drawing.draw_and_save_counter, c)
 
-                # add new atom epsilon to M and edge epsilon -> c #todo: maybe change epislon to phi too?
+                # add new atom epsilon to M and edge epsilon -> c
                 master.epsilon_counter += 1
                 epsilon = master.add_atom(f"eps_{master.epsilon_counter}",
                                           r"$\varepsilon_{" + f'{master.epsilon_counter}' + "}$")
@@ -149,7 +152,7 @@ def sparse_crossing(master, dual, a, b):
             print(drawing.draw_and_save_counter, eps)
             delta_prime = delta & dual.gl(d(eps))
             if (not delta) or (not same_set(delta, delta_prime)):
-                # add new atom psi to M and edges psi -> phi and psi -> epsilon #todo: maybe change epislon to phi too?
+                # add new atom psi to M and edges psi -> phi and psi -> epsilon
                 master.psi_counter += 1
                 psi = master.add_atom(f"psi_{master.psi_counter}",
                                       r"$\psi_{" + f'{master.psi_counter}' + "}$")
@@ -196,7 +199,7 @@ def sparse_crossing(master, dual, a, b):
 def atom_set_reduction(master, dual, keep_zero=False):
     # this is a stochastic algorithm to reduce the number of atoms.
     # this method can be called anytime, and should reduce the number of atoms in a few calls
-    # Q, A = OrderedSet(), master.constants
+    # Q, A = OrderedSet(), master.constants  # todo: verify which line is correct, this one or the line below
     Q, A = OrderedSet(), [c for c in master.constants if trace(master, dual, c) is not None]
     if keep_zero:
         Q.append(zero)
@@ -236,7 +239,7 @@ def atom_set_reduction_for_the_dual_algebra(dual, keep_zero=False):
     Q = OrderedSet()
     if keep_zero:
         Q.append(zero_star)
-    S = R['-']
+    S = R['-'].copy()
     while S:
         r = random_choice(S)
         print(drawing.draw_and_save_counter, r)
@@ -244,7 +247,7 @@ def atom_set_reduction_for_the_dual_algebra(dual, keep_zero=False):
         a, relation, b = r
         dis = dual.dis(d(b), d(a))
         if not (dis & Q):
-            xi = random_choice(tuple(dis))  # todo no need of random
+            xi = choice(tuple(dis))
             print(drawing.draw_and_save_counter, xi)
             Q.append(xi)
     to_remove = dual.atoms - Q
@@ -252,26 +255,93 @@ def atom_set_reduction_for_the_dual_algebra(dual, keep_zero=False):
     dual.close_graph()
 
 
-def merge_into(master, dual, merge_set, x):
-    to_union = [master.gla(x) for x in merge_set]
-    gla = OrderedSet().union(*to_union)
-    for atom in gla:
-        master.add_edge(atom, x)
-        dual.add_edge(d(x), d(atom))
-    master.close_graph()
-    return x
+def combine_from(master, dual, combine_list):
+    target_present = target in combine_list
+    CL = combine_list.copy()
+    if target_present:
+        CL.remove(target)
+    assert (len(CL) > 0)
+    while len(CL) > 1:
+        a, b = CL[0], CL[1]
+        c = combine(master, a, b)
+        CL = CL[1:]
+        CL[0] = c
+    ret = CL[0]
+    if ret not in master.graph.nodes:
+        master.combined_terms_counter += 1
+        master.add_term(ret, "$T_{" + f"{master.combined_terms_counter}" + "}$")
+        dual.add_constant(d(ret), dlatex(master.graph.nodes[ret]))
+        for x in combine_list:
+            master.add_edge(x, ret)
+            dual.add_edge(d(ret), d(x))
+        master.close_graph()
+        dual.close_graph()
+    return ret
 
 
-def generation_of_pinning_terms_and_relations(master, dual):  # fixme
+def combine(master, a, b):
+    assert all((x in master.constants or len(x) == 4) for x in (a, b))
+    assert all(x != target for x in (a, b))
+    # first, convert a and b to terms
+    r = [a, b]
+    for i in range(2):
+        if r[i] in master.constants:
+            T = [empty] * 4
+            index = (int(r[i][1]) - 1) * 2 + (int(r[i][2]) - 1)
+            T[index] = r[i][0]
+            r[i] = T
+    a, b = r
+    return combine_terms(a, b)
+
+
+def combine_terms(a, b):
+    T = [empty] * 4
+    for i in range(4):
+        if a[i] == empty:
+            T[i] = b[i]
+        elif b[i] == empty:
+            T[i] = a[i]
+        elif a[i] == mixed:
+            T[i] = mixed
+        elif b[i] == mixed:
+            T[i] = mixed
+        elif a[i] == b[i]:
+            T[i] = a[i]
+        else:
+            T[i] = mixed
+    print(*a[0:2], ' ', *b[0:2], ' ', *T[0:2])
+    print(*a[2:4], '+', *b[2:4], '=', *T[2:4], end='\n\n')
+    return tuple(T)
+
+
+def generation_of_pinning_terms_and_relations(master, dual):
     for phi in master.atoms:
         H = master.constants - master.u(phi)
 
         if H:
+            T_phi = combine_from(master, dual, list(H))
             master.pinning_term_counter += 1
-            T = master.add_term('PT_' + str(master.pinning_term_counter),
-                                '$PT_{' + f'{master.pinning_term_counter}' + '}$')
-            dual.add_constant(d(T), dlatex(master.graph.nodes[T]))
-            merge_into(master, dual, H, T)
+            old_name = T_phi
+            new_name = 'T_' + phi
+            master.rename_node(old_name, new_name,
+                               '$T_{' + f'{(master.graph.nodes[phi]["latex"])[1:-1]}' + '}$')
+            dual.rename_node(d(old_name), d(new_name), dlatex(master.graph.nodes[new_name]))
+            T_phi = new_name
             for c in master.constants & master.u(phi):
-                r = (c, '-', T)
+                r = (c, '-', T_phi)
                 master.pinning_relations.append(r)
+
+
+def is_consistent(master, dual, input_order_relations):
+    mentioned_terms = [b for (a, rel, b) in input_order_relations if b in master.terms]
+    consistent = True
+    for T1 in mentioned_terms:
+        for T2 in mentioned_terms:
+            if T1 != T2:
+                constants1 = master.glc(T1)
+                constants2 = master.glc(T2)
+                if constants1.issubset(constants2):
+                    consistent = (d(T2), d(T1)) in dual.graph.edges
+                    if not consistent:
+                        return False
+    return consistent

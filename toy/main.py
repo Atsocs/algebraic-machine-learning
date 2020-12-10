@@ -18,8 +18,7 @@ def main():
     else:
         erase_img()
 
-    # seed = 123456
-    seed = 234256
+    seed = 123456
     numpy.random.seed(seed)
     random.seed(seed)
 

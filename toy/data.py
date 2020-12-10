@@ -4,6 +4,8 @@ target = "v"
 
 black = "B"
 white = "W"
+mixed = "M"
+empty = "E"
 
 constants = [color + str(i) + str(j) for color in [black, white] for i in [1, 2] for j in [1, 2]]
 constants = [target] + constants

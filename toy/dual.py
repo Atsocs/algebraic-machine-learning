@@ -33,6 +33,7 @@ class Dual:
     """Dual Algebra and Graph"""
 
     add_node = Master.__dict__['add_node']
+    rename_node = Master.__dict__['rename_node']
 
     def add_dual_of_atom(self, dual_of_atom, latex):
         return self.add_node("dual-of-atom", dual_of_atom, latex)
