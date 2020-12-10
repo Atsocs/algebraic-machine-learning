@@ -7,9 +7,9 @@ from toy.data import target, zero, zero_star, mixed, empty
 from toy.dual import d, und, dlatex
 
 flag_print_choices = False
+flag_article_example = True
 
-aaaa = False
-if aaaa:
+if flag_article_example:
     choice_feeder = [] + [0] * 6 + [1] * 3 + [0] * (13 + 3)
     choices_made = 0
 
