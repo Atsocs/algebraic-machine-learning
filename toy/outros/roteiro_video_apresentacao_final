@@ -1,0 +1,24 @@
+Saudações. Meu nome é Caio Costa e esta é a apresentação final do projeto de Aprendizagem de Máquina Algébrica. No vídeo de entrega parcial, introduzi o projeto e apresentei resumidamente os algoritmos componentes deste novo paradigma de Machine Learning. Agora, vamos aplicar os algoritmos ao problema da barra vertical preta, passo a passo. Acompanhe comigo o efeito da execução do código sobre os grafos.
+
+Para a confecção dos grafos, foi utilizado o pacote de Python networkx e, para sua visualização, os pacotes graphviz e matplotlib.
+Os termos, constantes e átomos são criados e inseridos na álgebra principal, bem como as arestas que os ligam.
+
+A álgebra dual é criada a partir da principal, aplicando-se a operação dual em todos os seus nós e invertendo-se todas as suas arestas.
+Adiciona-se um átomo zero estrela na álgebra dual.
+
+O algoritmo 0 consiste em estabelecer a verdade das relações negativas invertidas na álgebra dual.
+Trata-se de um algoritmo opcional, mas que facilita a execução dos dois algoritmos seguintes.
+
+O algoritmo 1 serve para forçar as restrições de traço negativas. No nosso exemplo, seu único efeito é a criação do átomo phi 1, mas isso já cumpre o propósito do algoritmo.
+
+O algoritmo 2 força as restrições de traço positivas, por meio da criação dos átomos epsilon 1, epsilon 2 e epsilon 3.
+
+O algoritmo 3 de cruzamento esparso mistura as informações dos átomos criados pelos algoritmos anteriores sem alterar o traço de nenhum elemento, mantendo assim as restrições de traço já estabelicidas. Após o termino de sua execução, todas as relações-objetivo já são satisfeitas, mas ainda temos que lidar com o tamanho do modelo.
+
+O algoritmo 4 serve para reduzir o número de átomos na álgebra principal. Já não nos preocupamos em manter o traço de todos os elementos, mas apenas das constantes, preservando por linearidade o traço dos termos envolvidos nas relações positivas e negativas.
+
+O algoritmo 5, assim como o 4, serve para reduzir o número de átomos, mas agora na álgebra dual.
+
+O algoritmo 6 gera termos e relações de fixação que codificam o aprendizado durante a execução dos primeiros 5 algoritmos, possibilitando a exclusão de meta-informação e preparando o Aprendizado Algébrico para aprender o próximo lote de exemplos.
+
+Para encerrar, apresento o output do código, mostrando o sucesso da execução das rotinas aqui apresentadas.

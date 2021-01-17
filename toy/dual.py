@@ -76,7 +76,7 @@ class Dual:
     remove_atoms_from = Master.__dict__['remove_atoms_from']
 
     def __init__(self, master):
-        self.img_dir = drawing.path + "/toy/img/dual/"
+        self.img_dir = drawing.path + "/img/dual/"
         self.draw_flag = drawing.draw_flag
         self.fig_counter = 0
         self.drawing_mapping = {"atom": "c", "constant": "m", "dual-of-atom": "y"}

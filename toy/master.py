@@ -104,7 +104,7 @@ class Master:
         return OrderedSet(y for y in self.atoms + self.constants + self.terms if self.less(x, y))
 
     def __init__(self):
-        self.img_dir = drawing.path + "/toy/img/master/"
+        self.img_dir = drawing.path + "/img/master/"
         self.drawing_mapping = {"atom": "r", "constant": "g", "term": "b"}
         self.positive_relations = data.R['+']
         self.negative_relations = data.R['-']
@@ -161,6 +161,7 @@ class Master:
             g = nx.transitive_reduction(self.graph)
         else:
             g = self.graph
+        # pyplot.figure(figsize=(6, 3))
         nx.draw(g, pos, node_size=node_size, edgecolors=colors, node_color="white", linewidths=1.0)
         nx.draw_networkx_labels(g, pos, labels=labels, font_size=10)
 

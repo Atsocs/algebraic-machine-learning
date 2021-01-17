@@ -6,13 +6,13 @@ from matplotlib import pyplot
 pyplot.ioff()
 
 draw_and_save_counter = 0
-draw_flag = False
+draw_flag = True
 path = os.getcwd()
 
 
 def erase_img():
-    erase_folder(path + "/toy/img/master/")
-    erase_folder(path + "/toy/img/dual/")
+    erase_folder(path + "/img/master/")
+    erase_folder(path + "/img/dual/")
 
 
 def erase_folder(folder):

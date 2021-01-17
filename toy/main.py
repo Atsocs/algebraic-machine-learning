@@ -21,7 +21,8 @@ def main():
 
     print("Goal reached = " + str(algorithm.test_goal(master, master.relations)))
 
-    draw(master, dual)
+    if drawing.draw_flag:
+        draw(master, dual)
 
     return master, dual
 
@@ -37,18 +38,18 @@ def batch(master, dual):
     algorithm.enforce_positive_trace_constraints(master, dual, master.positive_relations)
 
     if algorithm.test_trace_constraints(master, dual, master.relations):
-        print("Trace constraints fufilled 1")
+        print("Trace constraints fulfilled 1")
     else:
-        print("ERROR: Trace constraints NOT fufilled 1")
+        print("ERROR: Trace constraints NOT fulfilled 1")
 
     drawing.draw_and_save_counter += 1000
     for (a, relation, b) in master.positive_relations:
         algorithm.sparse_crossing(master, dual, a, b)
 
     if algorithm.test_trace_constraints(master, dual, master.relations):
-        print("Trace constraints fufilled 2")
+        print("Trace constraints fulfilled 2")
     else:
-        print("ERROR: Trace constraints NOT fufilled 2")
+        print("ERROR: Trace constraints NOT fulfilled 2")
 
     drawing.draw_and_save_counter += 1000
     algorithm.atom_set_reduction(master, dual)
